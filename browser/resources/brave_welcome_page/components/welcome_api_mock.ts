@@ -8,7 +8,6 @@ import {
   ColorScheme,
   ChromeColor,
   Theme,
-  ThemeColorPickerEventSource,
   createWelcomeApi,
 } from '../api/welcome_api'
 
@@ -97,12 +96,9 @@ export function createWelcomeApiMock(): WelcomeApi {
         enabled: false,
       }),
       setVerticalTabsEnabled: async (enabled) => {},
-      getCrashReportsEnabled: async () => ({ enabled: true }),
-      setCrashReportsEnabled: async (enabled) => {},
-      getP3AEnabled: async () => ({ enabled: true }),
-      setP3AEnabled: async (enabled) => {},
-      getWebDiscoveryEnabled: async () => ({ enabled: true }),
-      setWebDiscoveryEnabled: async (enabled) => {},
+    },
+    welcomePageEventSource: {
+      addListeners: (listeners) => () => {},
     },
     themeColorPickerHandler: {
       getChromeColors: async () => ({ colors: mockChromeColors }),

@@ -11,8 +11,13 @@
 #include "brave/browser/ui/webui/brave_webui_source.h"
 #include "brave/browser/ui/webui/brave_welcome_page/brave_welcome_page.mojom.h"
 #include "brave/browser/ui/webui/brave_welcome_page/welcome_page_handler.h"
+#include "brave/browser/ui/webui/settings/brave_import_bulk_data_handler.h"
 #include "brave/components/constants/webui_url_constants.h"
+#include "chrome/browser/browser_process.h"
 #include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/search/background/ntp_custom_background_service_factory.h"
+#include "chrome/browser/themes/theme_service_factory.h"
+#include "chrome/browser/ui/webui/cr_components/theme_color_picker/theme_color_picker_handler.h"
 #include "chrome/browser/ui/webui/settings/settings_default_browser_handler.h"
 #include "components/grit/brave_components_resources.h"
 #include "components/grit/brave_components_strings.h"
@@ -41,9 +46,12 @@ BraveWelcomePageUI::BraveWelcomePageUI(content::WebUI* web_ui)
   AddBackgroundColorToSource(source, web_ui->GetWebContents());
 
   web_ui->AddMessageHandler(
+      std::make_unique<settings::BraveImportBulkDataHandler>());
+  web_ui->AddMessageHandler(
       std::make_unique<settings::DefaultBrowserHandler>());
 
   source->AddLocalizedStrings(webui::kBraveWelcomePageStrings);
+  source->AddString("pageTheme", "");
 }
 
 BraveWelcomePageUI::~BraveWelcomePageUI() = default;
@@ -51,8 +59,31 @@ BraveWelcomePageUI::~BraveWelcomePageUI() = default;
 void BraveWelcomePageUI::BindInterface(
     mojo::PendingReceiver<brave_welcome_page::mojom::WelcomePageHandler>
         receiver) {
+  auto* profile = Profile::FromWebUI(web_ui());
   page_handler_ = std::make_unique<brave_welcome_page::WelcomePageHandler>(
-      std::move(receiver));
+      std::move(receiver), ThemeServiceFactory::GetForProfile(profile),
+      profile->GetPrefs(), g_browser_process->local_state());
+}
+
+void BraveWelcomePageUI::BindInterface(
+    mojo::PendingReceiver<
+        theme_color_picker::mojom::ThemeColorPickerHandlerFactory> receiver) {
+  if (theme_color_picker_handler_factory_receiver_.is_bound()) {
+    theme_color_picker_handler_factory_receiver_.reset();
+  }
+  theme_color_picker_handler_factory_receiver_.Bind(std::move(receiver));
+}
+
+void BraveWelcomePageUI::CreateThemeColorPickerHandler(
+    mojo::PendingReceiver<theme_color_picker::mojom::ThemeColorPickerHandler>
+        handler,
+    mojo::PendingRemote<theme_color_picker::mojom::ThemeColorPickerClient>
+        client) {
+  auto* profile = Profile::FromWebUI(web_ui());
+  theme_color_picker_handler_ = std::make_unique<ThemeColorPickerHandler>(
+      std::move(handler), std::move(client),
+      NtpCustomBackgroundServiceFactory::GetForProfile(profile),
+      web_ui()->GetWebContents());
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(BraveWelcomePageUI)
