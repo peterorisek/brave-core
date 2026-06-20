@@ -138,18 +138,21 @@ class NTPBackgroundImagesService {
   static std::optional<base::DictValue> HandleSponsoredComponentData(
       const base::FilePath& installed_dir,
       const std::string& variations_country_code);
-  void OnHandledSponsoredComponentData(std::optional<base::DictValue> dict);
   void OnComponentReady(const base::FilePath& installed_dir);
   void OnGetComponentJsonData(const std::string& json_string);
   void OnVariationsCountryPrefChanged();
 
   void ScheduleNextSponsoredImagesComponentUpdate();
   void CheckSponsoredImagesComponentUpdate(const std::string& component_id);
+  void ResetSponsoredImagesData();
 
   // virtual for test.
   virtual void RegisterBackgroundImagesComponent();
   virtual std::string GetCountryCode() const;
   virtual void OnSponsoredComponentReady(const base::FilePath& installed_dir);
+  virtual void OnHandledSponsoredComponentData(
+      const base::FilePath& installed_dir,
+      std::optional<base::DictValue> dict);
 
   std::optional<base::Time> last_updated_at_;
 
@@ -169,7 +172,7 @@ class NTPBackgroundImagesService {
   base::WallClockTimer sponsored_images_update_check_timer_;
   base::RepeatingClosure sponsored_images_update_check_callback_;
   std::optional<std::string> sponsored_images_component_id_;
-  base::FilePath sponsored_images_installed_dir_;
+  std::optional<base::FilePath> sponsored_images_installed_dir_;
   std::unique_ptr<NTPSponsoredImagesData> sponsored_images_data_;
   std::unique_ptr<NTPSponsoredImagesData>
       sponsored_images_data_excluding_rich_media_;
@@ -177,6 +180,8 @@ class NTPBackgroundImagesService {
   base::ObserverList<Observer>::Unchecked observers_;
 
   base::WeakPtrFactory<NTPBackgroundImagesService> weak_factory_{this};
+  base::WeakPtrFactory<NTPBackgroundImagesService>
+      sponsored_images_weak_factory_{this};
 };
 
 }  // namespace ntp_background_images
