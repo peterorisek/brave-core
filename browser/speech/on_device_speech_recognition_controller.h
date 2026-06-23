@@ -16,8 +16,14 @@
 #include "base/timer/timer.h"
 #include "brave/browser/local_ai/background_web_contents_factory.h"
 #include "brave/components/local_ai/core/background_web_contents.h"
+#include "brave/components/local_ai/core/on_device_speech_recognition.mojom.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_observer.h"
+#include "mojo/public/cpp/bindings/pending_receiver.h"
+#include "mojo/public/cpp/bindings/pending_remote.h"
+#include "mojo/public/cpp/bindings/receiver.h"
+#include "mojo/public/cpp/bindings/receiver_set.h"
+#include "mojo/public/cpp/bindings/remote.h"
 
 namespace base {
 template <typename T>
@@ -37,7 +43,8 @@ namespace speech {
 // next Start() restarts the pipeline. A Start() that arrives before kReady is
 // queued in pending_sessions_ and forwarded once Ready.
 class OnDeviceSpeechRecognitionController
-    : public local_ai::BackgroundWebContents::Delegate,
+    : public local_ai::mojom::SpeechRecognitionFactoryHost,
+      public local_ai::BackgroundWebContents::Delegate,
       public ProfileObserver {
  public:
   // Creates the BackgroundWebContents that hosts the worker. Production binds
@@ -63,6 +70,16 @@ class OnDeviceSpeechRecognitionController
   // Public so the CreateForTesting() std::unique_ptr can destroy the instance.
   // The Get() singleton is a NoDestructor and is never destroyed.
   ~OnDeviceSpeechRecognitionController() override;
+
+  // Binds the FactoryHost receiver for the ORT worker WebUI.
+  void BindFactoryHost(
+      mojo::PendingReceiver<local_ai::mojom::SpeechRecognitionFactoryHost>
+          receiver);
+
+  // local_ai::mojom::SpeechRecognitionFactoryHost:
+  void RegisterFactory(
+      mojo::PendingRemote<local_ai::mojom::SpeechRecognitionFactory> factory)
+      override;
 
   // local_ai::BackgroundWebContents::Delegate:
   void OnBackgroundContentsDestroyed(
@@ -100,10 +117,18 @@ class OnDeviceSpeechRecognitionController
   void OnBackgroundContentsCreated(
       std::unique_ptr<local_ai::BackgroundWebContents> background_web_contents,
       Profile* otr_profile);
+  void OnStartupTimeout();
+
+  // Read the Nemotron graphs/companion files and whole-model weights off a
+  // blocking sequence, then build the worker's ORT sessions in Init.
+  void LoadOrtModel();
+  void OnOrtFilesRead(local_ai::mojom::OrtModelFilesPtr files);
+  void OnOrtInitResult(bool success);
 
   void StartIdleTimer();
   void OnIdleTimeout();
 
+  void OnFactoryDisconnected();
   void TearDown();
 
   CreateBackgroundWebContentsCallback create_background_web_contents_;
@@ -116,6 +141,16 @@ class OnDeviceSpeechRecognitionController
   base::ScopedObservation<Profile, ProfileObserver> profile_observation_{this};
 
   std::unique_ptr<local_ai::BackgroundWebContents> background_web_contents_;
+
+  mojo::Receiver<local_ai::mojom::SpeechRecognitionFactoryHost>
+      factory_host_receiver_{this};
+  mojo::Remote<local_ai::mojom::SpeechRecognitionFactory> factory_;
+
+  // Tears the worker down if it never registers its factory. Cancelled in
+  // RegisterFactory(); crashes past that point are caught by factory_'s
+  // disconnect handler.
+  base::OneShotTimer startup_timer_;
+  static constexpr base::TimeDelta kStartupTimeout = base::Seconds(30);
 
   // Tears the worker down after it has had no active AsrSession for
   // kIdleTimeout. Armed when the last session disconnects
