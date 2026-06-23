@@ -19,6 +19,7 @@ static_library("speech") {
     "//mojo/public/cpp/base",
     "//mojo/public/cpp/bindings",
     "//services/network/public/mojom",
+    "//services/on_device_model/public/mojom",
     "//url",
   ]
 }

@@ -7,6 +7,7 @@
 
 #include <optional>
 #include <utility>
+#include <vector>
 
 #include "base/functional/bind.h"
 #include "base/logging.h"
@@ -25,6 +26,15 @@
 #include "url/gurl.h"
 
 namespace speech {
+
+OnDeviceSpeechRecognitionController::PendingSession::PendingSession() = default;
+OnDeviceSpeechRecognitionController::PendingSession::PendingSession(
+    PendingSession&&) = default;
+OnDeviceSpeechRecognitionController::PendingSession&
+OnDeviceSpeechRecognitionController::PendingSession::operator=(
+    PendingSession&&) = default;
+OnDeviceSpeechRecognitionController::PendingSession::~PendingSession() =
+    default;
 
 namespace {
 
@@ -112,10 +122,22 @@ OnDeviceSpeechRecognitionController::CreateForTesting(  // IN-TEST
 OnDeviceSpeechRecognitionController::OnDeviceSpeechRecognitionController(
     CreateBackgroundWebContentsCallback create_background_web_contents)
     : create_background_web_contents_(
-          std::move(create_background_web_contents)) {}
+          std::move(create_background_web_contents)) {
+  asr_session_receivers_.set_disconnect_handler(base::BindRepeating(
+      &OnDeviceSpeechRecognitionController::OnAsrSessionDisconnected,
+      base::Unretained(this)));
+}
 
 OnDeviceSpeechRecognitionController::~OnDeviceSpeechRecognitionController() =
     default;
+
+mojo::PendingRemote<local_ai::mojom::AsrSession>
+OnDeviceSpeechRecognitionController::GetAsrSession() {
+  mojo::PendingRemote<local_ai::mojom::AsrSession> remote;
+  asr_session_receivers_.Add(this, remote.InitWithNewPipeAndPassReceiver());
+  idle_timer_.Stop();
+  return remote;
+}
 
 void OnDeviceSpeechRecognitionController::BindFactoryHost(
     mojo::PendingReceiver<local_ai::mojom::SpeechRecognitionFactoryHost>
@@ -142,6 +164,47 @@ void OnDeviceSpeechRecognitionController::RegisterFactory(
       base::Unretained(this)));
   state_ = State::kModelLoading;
   LoadOrtModel();
+}
+
+void OnDeviceSpeechRecognitionController::Start(
+    on_device_model::mojom::AsrStreamOptionsPtr options,
+    mojo::PendingReceiver<on_device_model::mojom::AsrStreamInput> stream,
+    mojo::PendingRemote<on_device_model::mojom::AsrStreamResponder> responder) {
+  // No model installed: don't spin up a guest profile + cross-origin-isolated
+  // renderer just to discover the files are missing in OnOrtFilesRead.
+  // Dropping the stream/responder pipes here surfaces to the engine as a
+  // recognition failure, the same outcome as a failed load.
+  if (local_ai::OnDeviceSpeechModelsState::GetInstance()
+          ->GetModelDir()
+          .empty()) {
+    return;
+  }
+
+  // Worker is ready, forward session to worker.
+  if (state_ == State::kReady) {
+    ForwardSession(std::move(options), std::move(stream), std::move(responder));
+    return;
+  }
+
+  // Worker is not ready yet, start the worker if not already starting.
+  if (state_ == State::kIdle) {
+    StartWorker();
+  }
+
+  // Queue the session until worker is ready.
+  PendingSession pending;
+  pending.options = std::move(options);
+  pending.stream = std::move(stream);
+  pending.responder = std::move(responder);
+  pending_sessions_.push_back(std::move(pending));
+}
+
+void OnDeviceSpeechRecognitionController::OnAsrSessionDisconnected() {
+  // A consumer dropped its AsrSession remote, so that session ended. When the
+  // last one goes, arm the idle timer to tear the worker down.
+  if (asr_session_receivers_.empty()) {
+    StartIdleTimer();
+  }
 }
 
 void OnDeviceSpeechRecognitionController::OnBackgroundContentsDestroyed(
@@ -257,6 +320,27 @@ void OnDeviceSpeechRecognitionController::OnOrtInitResult(bool success) {
     return;
   }
   state_ = State::kReady;
+  ForwardPendingSessions();
+}
+
+void OnDeviceSpeechRecognitionController::ForwardPendingSessions() {
+  std::vector<PendingSession> drained;
+  drained.swap(pending_sessions_);
+  for (auto& pending : drained) {
+    ForwardSession(std::move(pending.options), std::move(pending.stream),
+                   std::move(pending.responder));
+  }
+}
+
+void OnDeviceSpeechRecognitionController::ForwardSession(
+    on_device_model::mojom::AsrStreamOptionsPtr options,
+    mojo::PendingReceiver<on_device_model::mojom::AsrStreamInput> stream,
+    mojo::PendingRemote<on_device_model::mojom::AsrStreamResponder> responder) {
+  if (!factory_.is_bound()) {
+    return;
+  }
+  factory_->CreateAsrStream(std::move(options), std::move(stream),
+                            std::move(responder));
 }
 
 void OnDeviceSpeechRecognitionController::StartIdleTimer() {
@@ -268,6 +352,9 @@ void OnDeviceSpeechRecognitionController::StartIdleTimer() {
 }
 
 void OnDeviceSpeechRecognitionController::OnIdleTimeout() {
+  if (!asr_session_receivers_.empty()) {
+    return;
+  }
   TearDown();
 }
 
@@ -293,6 +380,8 @@ void OnDeviceSpeechRecognitionController::TearDown() {
   background_web_contents_.reset();
   profile_observation_.Reset();
   otr_profile_ = nullptr;
+  pending_sessions_.clear();
+  asr_session_receivers_.Clear();
   factory_host_receiver_.reset();
   state_ = State::kIdle;
 }
