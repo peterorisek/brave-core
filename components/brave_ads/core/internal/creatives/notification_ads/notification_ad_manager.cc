@@ -13,6 +13,7 @@
 #include "brave/components/brave_ads/core/internal/global_state/global_state.h"
 #include "brave/components/brave_ads/core/internal/prefs/pref_util.h"
 #include "brave/components/brave_ads/core/internal/settings/settings.h"
+#include "brave/components/brave_ads/core/mojom/brave_ads.mojom.h"
 #include "brave/components/brave_ads/core/public/ad_units/notification_ad/notification_ad_info.h"
 #include "brave/components/brave_ads/core/public/ad_units/notification_ad/notification_ad_value_util.h"
 #include "brave/components/brave_ads/core/public/ads_client/ads_client.h"
@@ -62,7 +63,18 @@ void NotificationAdManager::Add(const NotificationAdInfo& ad) {
 
   ads_.push_back(ad);
 
-  GetAdsClient().ShowNotificationAd(ad);
+  auto mojom_ad = mojom::NotificationAdInfo::New();
+  mojom_ad->type = ad.type;
+  mojom_ad->placement_id = ad.placement_id;
+  mojom_ad->creative_instance_id = ad.creative_instance_id;
+  mojom_ad->creative_set_id = ad.creative_set_id;
+  mojom_ad->campaign_id = ad.campaign_id;
+  mojom_ad->advertiser_id = ad.advertiser_id;
+  mojom_ad->segment = ad.segment;
+  mojom_ad->title = ad.title;
+  mojom_ad->body = ad.body;
+  mojom_ad->target_url = ad.target_url;
+  GetAdsClient().ShowNotificationAd(std::move(mojom_ad));
 
 #if BUILDFLAG(IS_ANDROID)
   if (ads_.size() > kMaximumNotificationAds) {
