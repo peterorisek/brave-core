@@ -1,17 +1,17 @@
 diff --git a/components/sync/protocol/proto_value_conversions_unittest.cc b/components/sync/protocol/proto_value_conversions_unittest.cc
-index 60b5cae7b35e8bdabfaed90be2b05a23e258b7b2..4946d3d5c651bb337214602ae1f2c06a7d09c3bc 100644
+index 4ad1a438d3fa2215e9c93f249b05252138a69ebf..29136ef4cbc9af178c6cf7d7b288617968f7ee5b 100644
 --- a/components/sync/protocol/proto_value_conversions_unittest.cc
 +++ b/components/sync/protocol/proto_value_conversions_unittest.cc
 @@ -71,7 +71,7 @@ using ::testing::Pointee;
  
  DEFINE_SPECIFICS_TO_VALUE_TEST(encrypted)
  
--static_assert(63 == syncer::GetNumDataTypes(),
-+static_assert(63 + 1 == syncer::GetNumDataTypes(),
+-static_assert(65 == syncer::GetNumDataTypes(),
++static_assert(65 + 1 == syncer::GetNumDataTypes(),
                "When adding a new field, add a DEFINE_SPECIFICS_TO_VALUE_TEST "
                "for your field below, and optionally a test for the specific "
                "conversions.");
-@@ -139,6 +139,7 @@ DEFINE_SPECIFICS_TO_VALUE_TEST(ai_thread)
+@@ -141,6 +141,7 @@ DEFINE_SPECIFICS_TO_VALUE_TEST(ai_thread)
  DEFINE_SPECIFICS_TO_VALUE_TEST(contextual_task)
  DEFINE_SPECIFICS_TO_VALUE_TEST(skill)
  DEFINE_SPECIFICS_TO_VALUE_TEST(gemini_thread)
