@@ -1712,6 +1712,7 @@ if (is_android) {
       "//components/password_manager/core/browser:password_manager_java_enums",
       "//components/permissions/android:java",
       "//components/policy/android:policy_java",
+      "//components/policy/android:policy_java_test_support",
       "//components/prefs/android:java",
       "//components/search_engines/android:java",
       "//components/signin/public/android:java",
