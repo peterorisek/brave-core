@@ -52,7 +52,7 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
 "===================================================================
 --- ../chrome/browser/resources/extensions/detail_view.html.ts
 +++ gen/chrome/browser/resources/extensions/preprocessed/detail_view.html.ts
-@@ -338,16 +338,13 @@
+@@ -345,16 +345,13 @@
                @change="\${this.onPinnedToToolbarChange_}">
              <span>$i18n{itemPinToToolbar}</span>
            </extensions-toggle-row>\` : ''}
@@ -118,7 +118,7 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
        </div>
        \${this.showSevereWarnings() ? html\`
          <div id="warnings">
-@@ -132,15 +130,12 @@
+@@ -134,15 +132,12 @@
      </div>
    </div>
    <div id="button-strip" class="layout-horizontal-center cr-secondary-text">
@@ -136,7 +136,7 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
        </cr-button>
        \${this.shouldShowErrorsButton_() ? html\`
          <cr-button id="errors-button"
-@@ -172,20 +167,11 @@
+@@ -176,20 +171,11 @@
        <cr-button id="terminated-reload-button" @click="\${this.onReloadClick_}"
            aria-describedby="a11yAssociation" class="action-button">
          $i18n{itemReload}
@@ -333,7 +333,7 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
  
  import {html} from '//resources/lit/v3_0/lit.rollup.js';
  
-@@ -9,92 +7,42 @@
+@@ -9,98 +7,46 @@
  export function getHtml(this: PowerBookmarksAppElement) {
    // clang-format off
    return html\`<!--_html_template_start_-->
@@ -410,17 +410,25 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
 -        @clear-selected-items="\${this.onClearSelectedItems_}">
 +    <cr-toolbar-selection-overlay ?show="\${this.editing_}" cancel-label="$i18n{cancelA11yLabel}" selection-label="\${this.getSelectedDescription_()}" @clear-selected-items="\${this.onClearSelectedItems_}">
        <div class="sp-icon-buttons-row">
--        <cr-icon-button id="deleteButton" iron-icon="bookmarks:delete"
+-        <cr-icon-button id="deleteButton"
+-            iron-icon="\${this.webuiRoundedIconsEnabled_
++        <cr-icon-button id="deleteButton" iron-icon="\${this.webuiRoundedIconsEnabled_
+                 ? 'bookmarks:delete'
+-                : 'bookmarks:delete-old'}"
 -            ?disabled="\${!this.getSelectedBookmarksLength_()}"
 -            title="$i18n{tooltipDelete}" aria-label="$i18n{tooltipDelete}"
 -            @click="\${this.onDeleteClick_}">
-+        <cr-icon-button id="deleteButton" iron-icon="bookmarks:delete" ?disabled="\${!this.getSelectedBookmarksLength_()}" title="$i18n{tooltipDelete}" aria-label="$i18n{tooltipDelete}" @click="\${this.onDeleteClick_}">
++                : 'bookmarks:delete-old'}" ?disabled="\${!this.getSelectedBookmarksLength_()}" title="$i18n{tooltipDelete}" aria-label="$i18n{tooltipDelete}" @click="\${this.onDeleteClick_}">
          </cr-icon-button>
--        <cr-icon-button iron-icon="bookmarks:move"
+-        <cr-icon-button
+-            iron-icon="\${this.webuiRoundedIconsEnabled_
++        <cr-icon-button iron-icon="\${this.webuiRoundedIconsEnabled_
+                 ? 'bookmarks:drive-file-move'
+-                : 'bookmarks:move-old'}"
 -            ?disabled="\${!this.getSelectedBookmarksLength_()}"
 -            title="$i18n{tooltipMove}" aria-label="$i18n{tooltipMove}"
 -            @click="\${this.onMoveClick_}">
-+        <cr-icon-button iron-icon="bookmarks:move" ?disabled="\${!this.getSelectedBookmarksLength_()}" title="$i18n{tooltipMove}" aria-label="$i18n{tooltipMove}" @click="\${this.onMoveClick_}">
++                : 'bookmarks:move-old'}" ?disabled="\${!this.getSelectedBookmarksLength_()}" title="$i18n{tooltipMove}" aria-label="$i18n{tooltipMove}" @click="\${this.onMoveClick_}">
          </cr-icon-button>
 -        <cr-icon-button iron-icon="cr:more-vert"
 -            ?disabled="\${!this.getSelectedBookmarksLength_()}"
@@ -440,7 +448,7 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
  
  <cr-dialog id="disabledFeatureDialog">
    <div slot="body" class="dialog-body">
-@@ -107,14 +55,9 @@
+@@ -113,14 +59,9 @@
      </cr-button>
    </div>
  </cr-dialog>
