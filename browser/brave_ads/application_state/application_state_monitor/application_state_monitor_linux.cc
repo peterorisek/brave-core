@@ -52,8 +52,7 @@ bool ApplicationStateMonitorLinux::IsBrowserActive() const {
   bool found_foreground = false;
   GlobalBrowserCollection::GetInstance()->ForEach(
       [&found_foreground, x11_window](BrowserWindowInterface* browser) {
-        auto* window =
-            browser->GetBrowserForMigrationOnly()->window()->GetNativeWindow();
+        auto* window = BrowserWindow::FromBrowser(browser)->GetNativeWindow();
         if (!window) {
           return true;
         }
