@@ -183,6 +183,11 @@
 -InMemoryURLIndexTest.TitleSearch
 -URLDatabaseTest.EnumeratorForSignificant
 
+# These fail because we disable kPersonalContext feature, which prevents
+# PersonalContextService from being created and ContextHubService which depends
+# on PersonalContextService.
+-PersonalContextFetcherTest.*
+
 # Tests below this point have not been diagnosed or had issues created yet.
 -AccountInvestigatorTest.*
 -AccountReconcilorDiceTest.*
