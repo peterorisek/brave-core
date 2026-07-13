@@ -9,15 +9,28 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #include "base/json/json_writer.h"
 #include "base/time/time.h"
 #include "base/values.h"
 #include "brave/components/brave_account/endpoint_client/is_request_body.h"
+#include "brave/components/brave_account/endpoint_client/url_replacements.h"
 #include "net/http/http_request_headers.h"
 #include "net/traffic_annotation/network_traffic_annotation.h"
+#include "services/network/public/cpp/simple_url_loader.h"
 
-namespace brave_account::endpoint_client::detail {
+namespace brave_account::endpoint_client {
+
+// Retry configuration forwarded to SimpleURLLoader::SetRetryOptions().
+// The defaults (no retries, RETRY_NEVER) leave the request non-retrying.
+struct RetryOptions {
+  int max_retries = 0;
+  std::underlying_type_t<network::SimpleURLLoader::RetryMode> retry_mode =
+      network::SimpleURLLoader::RETRY_NEVER;
+};
+
+namespace detail {
 
 // HTTP methods
 enum class Method {
@@ -73,7 +86,9 @@ struct Request {
 
   Body body;
   net::MutableNetworkTrafficAnnotationTag network_traffic_annotation_tag;
+  RetryOptions retry_options;
   base::TimeDelta timeout_duration;
+  UrlReplacements url_replacements;
 
  private:
   // Returns the Content-Type value for a JSON request body.
@@ -104,6 +119,8 @@ struct Request {
   }
 };
 
-}  // namespace brave_account::endpoint_client::detail
+}  // namespace detail
+
+}  // namespace brave_account::endpoint_client
 
 #endif  // BRAVE_COMPONENTS_BRAVE_ACCOUNT_ENDPOINT_CLIENT_REQUEST_H_
