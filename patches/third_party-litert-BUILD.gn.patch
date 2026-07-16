@@ -1,0 +1,43 @@
+diff --git a/third_party/litert/BUILD.gn b/third_party/litert/BUILD.gn
+index ad72a9d9a91fae0277d69a4da51f13055c1dcefe..e451ded2ede5d28a1abd79cd581b5f578aba97cb 100644
+--- a/third_party/litert/BUILD.gn
++++ b/third_party/litert/BUILD.gn
+@@ -66,13 +66,20 @@ config("litert_config") {
+     "src",
+   ]
+   defines = [
+-    "LITERT_DISABLE_METAL_SUPPORT",
+     "LITERT_DISABLE_OPENCL_SUPPORT",
+     "LITERT_DISABLE_OPENGL_SUPPORT",
+     "LITERT_HAS_OPENCL_SUPPORT=0",
+     "LITERT_WITH_EXTERNAL_WEIGHT_LOADER",
+   ]
+ 
++  # Metal GPU accelerator PoC (desktop macOS): leave LITERT_HAS_METAL_SUPPORT at
++  # its Apple default (1) so the runtime builds the Metal device / tensor-buffer
++  # paths and gpu_registry searches for libLiteRtMetalAccelerator. Keep Metal
++  # disabled on every other platform.
++  if (!is_mac) {
++    defines += [ "LITERT_DISABLE_METAL_SUPPORT" ]
++  }
++
+   if (build_litert_with_xnnpack) {
+     defines += [ "LITERT_USE_XNNPACK" ]
+   } else {
+@@ -369,6 +376,7 @@ source_set("litert_headers") {
+     ":litert_core",
+     ":litert_runtime",
+     ":litert_runtime_accelerators",
++    "//brave/third_party/litert:litert_metal_info",
+   ]
+ }
+ 
+@@ -527,6 +535,8 @@ static_library("litert_runtime") {
+     ]
+   }
+   deps = [ ":litert_headers" ]
++  import("//brave/third_party/litert/sources.gni")
++  deps += brave_litert_runtime_deps
+   if (use_litert_tflite) {
+     deps += [
+       ":tflite",

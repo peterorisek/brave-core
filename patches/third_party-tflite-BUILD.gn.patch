@@ -1,0 +1,12 @@
+diff --git a/third_party/tflite/BUILD.gn b/third_party/tflite/BUILD.gn
+index a918b05fa880884ae8c59c886ddfca9711969982..3e187a936c3a9f62dcb81a6068584e5d7918b736 100644
+--- a/third_party/tflite/BUILD.gn
++++ b/third_party/tflite/BUILD.gn
+@@ -379,6 +379,7 @@ if (!use_litert_tflite) {
+ 
+     visibility = [
+       ":tflite_benchmark",
++      "//brave/browser/history_embeddings/*",
+       "//components/optimization_guide/internal/*",
+       "//modules/*",
+       "//services/webnn/*",
