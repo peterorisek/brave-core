@@ -58,10 +58,37 @@ source_set("browser_tests") {
   ]
 }
 
+# Native EmbeddingGemma passage embedder running on LiteRT's CompiledModel
+# (Metal GPU or CPU), a drop-in mojom::PassageEmbedder for the WASM path.
+source_set("litert_passage_embedder") {
+  sources = [
+    "brave_litert_passage_embedder.cc",
+    "brave_litert_passage_embedder.h",
+  ]
+
+  deps = [
+    "//base",
+    "//services/passage_embeddings/public/mojom",
+    "//third_party/litert",
+    "//third_party/sentencepiece",
+
+    # LiteRT's runtime is built with use_litert_tflite=false, so it references
+    # TFLite's op resolver and C API without linking them.
+    "//third_party/tflite",
+    "//third_party/tflite:tflite_builtin_op_resolver",
+  ]
+
+  visibility = [
+    ":history_embeddings",
+    ":unit_tests",
+  ]
+}
+
 source_set("unit_tests") {
   testonly = true
   sources = [
     "brave_batch_passage_embedder_unittest.cc",
+    "brave_litert_passage_embedder_unittest.cc",
     "brave_passage_embeddings_service_unittest.cc",
     "litert_embedder_poc_unittest.cc",
   ]
@@ -69,6 +96,7 @@ source_set("unit_tests") {
   deps = [
     ":batch_passage_embedder",
     ":history_embeddings",
+    ":litert_passage_embedder",
     "//base",
     "//base/test:test_support",
     "//brave/components/local_ai/core",

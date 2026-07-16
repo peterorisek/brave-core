@@ -1,6 +1,7 @@
 include_rules = [
   "+brave/components/history_embeddings",
   "+services/passage_embeddings/public/mojom",
+  "+third_party/abseil-cpp/absl",
   "+third_party/litert",
   "+third_party/sentencepiece",
 ]
