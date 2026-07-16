@@ -229,7 +229,13 @@ void BravePassageEmbeddingsServiceController::OnLocalModelsReady(
 
 EmbedderMetadata
 BravePassageEmbeddingsServiceController::GetEmbedderMetadata() {
-  return EmbedderMetadata(/*model_version=*/1,
+  // Use a distinct model_version for the native LiteRT embedder so that
+  // switching to (or away from) it invalidates embeddings computed by the WASM
+  // embedder -- SqlDatabase re-embeds stored history rather than mixing vector
+  // spaces from two different backends.
+  const int model_version =
+      BravePassageEmbeddingsService::ShouldUseLitertEmbedder() ? 2 : 1;
+  return EmbedderMetadata(model_version,
                           /*output_size=*/768,
                           /*search_score_threshold=*/0.45);
 }

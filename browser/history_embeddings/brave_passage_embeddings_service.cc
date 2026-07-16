@@ -22,19 +22,33 @@ namespace passage_embeddings {
 
 namespace {
 
-// Dev switches selecting the native LiteRT embedder over the WASM one, sourcing
-// the model from local files. Component-updater delivery is a later step; until
-// then the LiteRT path is off unless these are passed.
-//   --history-embeddings-litert-model=<embeddinggemma .tflite>
-//   --history-embeddings-litert-tokenizer=<sentencepiece.model>
-//   --history-embeddings-litert-gpu-lib-dir=<prebuilt accelerator dir; if set,
-//       runs on the GPU, else CPU>
+// Optional override for the model location: the path to the EmbeddingGemma
+// `.tflite`. `sentencepiece.model` is read as a sibling in the same directory.
+// Only consulted when kBraveHistoryEmbeddingsLitertGpu is enabled.
 constexpr char kLitertModelSwitch[] = "history-embeddings-litert-model";
-constexpr char kLitertTokenizerSwitch[] = "history-embeddings-litert-tokenizer";
-constexpr char kLitertGpuLibDirSwitch[] =
-    "history-embeddings-litert-gpu-lib-dir";
+
+constexpr char kSentencePieceModelName[] = "sentencepiece.model";
+
+// PoC dev defaults so launching only needs the feature flag (no switches).
+// These are local absolute paths and will be replaced by component delivery.
+// TODO(litert-poc): remove once the model + accelerator are shipped.
+constexpr char kDefaultModelPath[] =
+    "/Users/darkdh/Projects/embeddinggemma-300m/"
+    "embeddinggemma-300M_seq256_mixed-precision.tflite";
+constexpr char kDefaultAcceleratorDir[] =
+    "/Users/darkdh/Projects/brave-browser/src/third_party/litert/src/litert/"
+    "prebuilt/macos_arm64";
 
 }  // namespace
+
+BASE_FEATURE(kBraveHistoryEmbeddingsLitertGpu,
+             "BraveHistoryEmbeddingsLitertGpu",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// static
+bool BravePassageEmbeddingsService::ShouldUseLitertEmbedder() {
+  return base::FeatureList::IsEnabled(kBraveHistoryEmbeddingsLitertGpu);
+}
 
 BravePassageEmbeddingsService::BravePassageEmbeddingsService(
     BackgroundWebContentsFactory background_web_contents_factory)
@@ -58,33 +72,35 @@ void BravePassageEmbeddingsService::BindPassageEmbedder(
     base::OnceCallback<void(bool)> callback) {
   CHECK(model_files);
 
-  // Dev path: when the LiteRT switches are set, run EmbeddingGemma natively via
-  // CompiledModel (GPU/CPU) instead of the WASM worker. `model_files` (the
-  // WASM-format buffers) is ignored here -- the .tflite + tokenizer come from
-  // the local files named by the switches until component delivery lands.
-  const auto* cmd = base::CommandLine::ForCurrentProcess();
-  const base::FilePath litert_model =
-      cmd->GetSwitchValuePath(kLitertModelSwitch);
-  const base::FilePath litert_tokenizer =
-      cmd->GetSwitchValuePath(kLitertTokenizerSwitch);
-  if (!litert_model.empty() && !litert_tokenizer.empty()) {
+  // When enabled, run EmbeddingGemma natively via CompiledModel (GPU/CPU)
+  // instead of the WASM worker. `model_files` (the WASM-format buffers) is
+  // ignored here -- the .tflite comes from the switch (or the PoC default), the
+  // tokenizer is read as a sibling, and the prebuilt GPU accelerator from the
+  // hardcoded PoC directory, until component delivery lands.
+  if (ShouldUseLitertEmbedder()) {
     if (litert_embedder_) {
       DVLOG(1) << "BindPassageEmbedder called while a LiteRT embedder is "
                   "already bound; failing";
       std::move(callback).Run(false);
       return;
     }
-    const base::FilePath gpu_lib_dir =
-        cmd->GetSwitchValuePath(kLitertGpuLibDirSwitch);
+    base::FilePath model_path =
+        base::CommandLine::ForCurrentProcess()->GetSwitchValuePath(
+            kLitertModelSwitch);
+    if (model_path.empty()) {
+      model_path = base::FilePath::FromASCII(kDefaultModelPath);
+    }
     // Load + compile + run on a background sequence so the large model read and
-    // inference never touch the UI thread.
+    // inference never touch the UI thread. The embedder uses the GPU only if
+    // the prebuilt accelerator is present in the accelerator directory.
     litert_embedder_ = base::SequenceBound<
         brave_history_embeddings::BraveLitertPassageEmbedder>(
         base::ThreadPool::CreateSequencedTaskRunner(
             {base::MayBlock(), base::TaskPriority::USER_VISIBLE}),
-        litert_model, litert_tokenizer, /*use_gpu=*/!gpu_lib_dir.empty(),
-        gpu_lib_dir, std::move(receiver),
-        base::SequencedTaskRunner::GetCurrentDefault(), std::move(callback),
+        model_path, model_path.DirName().Append(kSentencePieceModelName),
+        /*use_gpu=*/true, base::FilePath::FromASCII(kDefaultAcceleratorDir),
+        std::move(receiver), base::SequencedTaskRunner::GetCurrentDefault(),
+        std::move(callback),
         base::BindOnce(
             &BravePassageEmbeddingsService::OnLitertEmbedderDisconnected,
             weak_ptr_factory_.GetWeakPtr()));

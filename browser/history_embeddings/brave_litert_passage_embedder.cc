@@ -13,6 +13,7 @@
 #include "base/logging.h"
 #include "base/memory/ptr_util.h"
 #include "base/task/bind_post_task.h"
+#include "build/build_config.h"
 #include "third_party/abseil-cpp/absl/strings/string_view.h"
 #include "third_party/litert/src/litert/cc/litert_buffer_ref.h"
 #include "third_party/litert/src/litert/cc/litert_common.h"
@@ -75,13 +76,23 @@ BraveLitertPassageEmbedder::BraveLitertPassageEmbedder(
     scoped_refptr<base::SequencedTaskRunner> reply_task_runner,
     base::OnceCallback<void(bool)> load_callback,
     base::OnceClosure on_disconnect) {
+  // Use the GPU only if the prebuilt accelerator is actually next to the model.
+  // (Runs on a MayBlock sequence, so the filesystem probe is allowed here.)
+  bool accelerator_available = false;
+#if BUILDFLAG(IS_MAC)
+  accelerator_available =
+      use_gpu && !gpu_runtime_lib_dir.empty() &&
+      base::PathExists(gpu_runtime_lib_dir.Append(
+          FILE_PATH_LITERAL("libLiteRtMetalAccelerator.dylib")));
+#endif
+
   std::optional<std::vector<uint8_t>> tflite =
       base::ReadFileToBytes(tflite_model_path);
   std::optional<std::vector<uint8_t>> sentencepiece =
       base::ReadFileToBytes(sentencepiece_model_path);
   const bool loaded =
       tflite.has_value() && sentencepiece.has_value() &&
-      Init(*tflite, *sentencepiece, use_gpu, gpu_runtime_lib_dir);
+      Init(*tflite, *sentencepiece, accelerator_available, gpu_runtime_lib_dir);
   if (loaded) {
     receiver_.Bind(std::move(receiver));
     receiver_.set_disconnect_handler(

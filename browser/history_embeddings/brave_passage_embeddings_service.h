@@ -8,6 +8,7 @@
 
 #include <memory>
 
+#include "base/feature_list.h"
 #include "base/functional/callback.h"
 #include "base/memory/weak_ptr.h"
 #include "base/threading/sequence_bound.h"
@@ -21,6 +22,12 @@ class BraveLitertPassageEmbedder;
 }  // namespace brave_history_embeddings
 
 namespace passage_embeddings {
+
+// Selects the native LiteRT EmbeddingGemma embedder (CompiledModel, GPU/CPU)
+// over the WASM worker. Disabled by default; the model is currently sourced
+// from a local file via the --history-embeddings-litert-model switch (component
+// delivery is a later step).
+BASE_DECLARE_FEATURE(kBraveHistoryEmbeddingsLitertGpu);
 
 // In-process implementation of
 // passage_embeddings::mojom::PassageEmbeddingsService. Takes the place of
@@ -40,6 +47,13 @@ class BravePassageEmbeddingsService : public mojom::PassageEmbeddingsService {
  public:
   using BackgroundWebContentsFactory =
       BraveBatchPassageEmbedder::BackgroundWebContentsFactory;
+
+  // Whether the native LiteRT embedder is selected (the
+  // kBraveHistoryEmbeddingsLitertGpu feature is enabled and a model path is
+  // provided). The controller uses this to report a distinct embedder
+  // model_version so switching to/from the LiteRT embedder re-embeds stored
+  // history instead of mixing vector spaces.
+  static bool ShouldUseLitertEmbedder();
 
   explicit BravePassageEmbeddingsService(
       BackgroundWebContentsFactory background_web_contents_factory);
