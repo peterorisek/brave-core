@@ -201,6 +201,8 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
     // Used to ensure all the combinations are tested.
     private final boolean[] mFlagCombinations = new boolean[1 << 5];
 
+    private final boolean mCanActivateTabLayoutToggleMenu = true;
+
     @Before
     public void setUp() {
         Context context =
@@ -288,7 +290,9 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
                         /* recentlyClosedEntriesManagerSupplier= */ () ->
                                 mRecentlyClosedEntriesManager,
                         () -> mSideUiStateProvider,
-                        /* isXrFullSpaceModeSupplier= */ () -> false);
+                        /* isXrFullSpaceModeSupplier= */ () -> false,
+                        /* canActivateTabLayoutToggleMenu= */ () ->
+                                mCanActivateTabLayoutToggleMenu);
         delegate.setIsJunitTesting(true);
         BaseRobolectricTestRule.runAllBackgroundAndUi();
         mTabbedAppMenuPropertiesDelegate = Mockito.spy(delegate);
