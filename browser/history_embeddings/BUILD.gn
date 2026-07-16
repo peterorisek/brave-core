@@ -66,10 +66,17 @@ source_set("litert_passage_embedder") {
     "brave_litert_passage_embedder.h",
   ]
 
-  deps = [
+  # Exposed as public_deps because the public header includes litert's
+  # CompiledModel/Environment (whose internal includes need litert's include
+  # config), the PassageEmbedder mojom, and mojo bindings.
+  public_deps = [
     "//base",
+    "//mojo/public/cpp/bindings",
     "//services/passage_embeddings/public/mojom",
     "//third_party/litert",
+  ]
+
+  deps = [
     "//third_party/sentencepiece",
 
     # LiteRT's runtime is built with use_litert_tflite=false, so it references
@@ -167,6 +174,7 @@ source_set("history_embeddings") {
 
   deps = [
     ":batch_passage_embedder",
+    ":litert_passage_embedder",
     "//brave/app:brave_generated_resources_grit",
     "//brave/browser/local_ai",
     "//brave/components/history_embeddings",

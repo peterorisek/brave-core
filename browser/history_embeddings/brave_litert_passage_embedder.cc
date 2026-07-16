@@ -8,8 +8,11 @@
 #include <algorithm>
 #include <utility>
 
+#include "base/files/file_util.h"
+#include "base/functional/bind.h"
 #include "base/logging.h"
 #include "base/memory/ptr_util.h"
+#include "base/task/bind_post_task.h"
 #include "third_party/abseil-cpp/absl/strings/string_view.h"
 #include "third_party/litert/src/litert/cc/litert_buffer_ref.h"
 #include "third_party/litert/src/litert/cc/litert_common.h"
@@ -45,17 +48,7 @@ size_t ElementBytes(litert::ElementType type) {
 
 }  // namespace
 
-BraveLitertPassageEmbedder::BraveLitertPassageEmbedder(
-    std::vector<uint8_t> tflite_model,
-    litert::Environment environment,
-    litert::CompiledModel model,
-    std::unique_ptr<sentencepiece::SentencePieceProcessor> tokenizer,
-    size_t input_window_size)
-    : tflite_model_(std::move(tflite_model)),
-      environment_(std::move(environment)),
-      model_(std::move(model)),
-      tokenizer_(std::move(tokenizer)),
-      input_window_size_(input_window_size) {}
+BraveLitertPassageEmbedder::BraveLitertPassageEmbedder() = default;
 
 BraveLitertPassageEmbedder::~BraveLitertPassageEmbedder() = default;
 
@@ -65,18 +58,57 @@ std::unique_ptr<BraveLitertPassageEmbedder> BraveLitertPassageEmbedder::Create(
     base::span<const uint8_t> sentencepiece_model,
     bool use_gpu,
     const base::FilePath& gpu_runtime_lib_dir) {
-  auto tokenizer = std::make_unique<sentencepiece::SentencePieceProcessor>();
-  const auto load_status = tokenizer->LoadFromSerializedProto(absl::string_view(
-      reinterpret_cast<const char*>(sentencepiece_model.data()),
-      sentencepiece_model.size()));
+  auto embedder = base::WrapUnique(new BraveLitertPassageEmbedder());
+  if (!embedder->Init(tflite_model, sentencepiece_model, use_gpu,
+                      gpu_runtime_lib_dir)) {
+    return nullptr;
+  }
+  return embedder;
+}
+
+BraveLitertPassageEmbedder::BraveLitertPassageEmbedder(
+    const base::FilePath& tflite_model_path,
+    const base::FilePath& sentencepiece_model_path,
+    bool use_gpu,
+    const base::FilePath& gpu_runtime_lib_dir,
+    mojo::PendingReceiver<passage_embeddings::mojom::PassageEmbedder> receiver,
+    scoped_refptr<base::SequencedTaskRunner> reply_task_runner,
+    base::OnceCallback<void(bool)> load_callback,
+    base::OnceClosure on_disconnect) {
+  std::optional<std::vector<uint8_t>> tflite =
+      base::ReadFileToBytes(tflite_model_path);
+  std::optional<std::vector<uint8_t>> sentencepiece =
+      base::ReadFileToBytes(sentencepiece_model_path);
+  const bool loaded =
+      tflite.has_value() && sentencepiece.has_value() &&
+      Init(*tflite, *sentencepiece, use_gpu, gpu_runtime_lib_dir);
+  if (loaded) {
+    receiver_.Bind(std::move(receiver));
+    receiver_.set_disconnect_handler(
+        base::BindPostTask(reply_task_runner, std::move(on_disconnect)));
+  }
+  reply_task_runner->PostTask(FROM_HERE,
+                              base::BindOnce(std::move(load_callback), loaded));
+}
+
+bool BraveLitertPassageEmbedder::Init(
+    base::span<const uint8_t> tflite_model,
+    base::span<const uint8_t> sentencepiece_model,
+    bool use_gpu,
+    const base::FilePath& gpu_runtime_lib_dir) {
+  tokenizer_ = std::make_unique<sentencepiece::SentencePieceProcessor>();
+  const auto load_status =
+      tokenizer_->LoadFromSerializedProto(absl::string_view(
+          reinterpret_cast<const char*>(sentencepiece_model.data()),
+          sentencepiece_model.size()));
   if (!load_status.ok()) {
     LOG(ERROR) << "LiteRT embedder: cannot load SentencePiece model: "
                << load_status.ToString();
-    return nullptr;
+    return false;
   }
 
   // The runtime references the model bytes past compilation; keep our own copy.
-  std::vector<uint8_t> model_bytes(tflite_model.begin(), tflite_model.end());
+  tflite_model_.assign(tflite_model.begin(), tflite_model.end());
 
   std::vector<litert::EnvironmentOptions::Option> env_options;
   const std::string runtime_lib_dir = gpu_runtime_lib_dir.AsUTF8Unsafe();
@@ -92,14 +124,15 @@ std::unique_ptr<BraveLitertPassageEmbedder> BraveLitertPassageEmbedder::Create(
   if (!environment) {
     LOG(ERROR) << "LiteRT embedder: cannot create environment: "
                << environment.Error().Message();
-    return nullptr;
+    return false;
   }
+  environment_ = std::move(*environment);
 
   auto compile_options = litert::Options::Create();
   if (!compile_options) {
     LOG(ERROR) << "LiteRT embedder: cannot create options: "
                << compile_options.Error().Message();
-    return nullptr;
+    return false;
   }
   if (use_gpu) {
     compile_options->SetHardwareAccelerators(litert::HwAccelerators::kGpu);
@@ -107,7 +140,7 @@ std::unique_ptr<BraveLitertPassageEmbedder> BraveLitertPassageEmbedder::Create(
     if (!gpu_options) {
       LOG(ERROR) << "LiteRT embedder: cannot get GPU options: "
                  << gpu_options.Error().Message();
-      return nullptr;
+      return false;
     }
     // EmbeddingGemma is mixed-precision (quantized FC/Conv weights). Both knobs
     // are required for correct GPU output: without the quantized-ops option the
@@ -116,38 +149,36 @@ std::unique_ptr<BraveLitertPassageEmbedder> BraveLitertPassageEmbedder::Create(
     gpu_options->EnableAllowSrcQuantizedFcConvOps(true);
     if (!gpu_options->SetPrecision(litert::GpuOptions::Precision::kFp32)) {
       LOG(ERROR) << "LiteRT embedder: cannot set fp32 precision.";
-      return nullptr;
+      return false;
     }
   } else {
     compile_options->SetHardwareAccelerators(litert::HwAccelerators::kCpu);
   }
 
   auto model = litert::CompiledModel::Create(
-      *environment,
-      litert::BufferRef<uint8_t>(model_bytes.data(), model_bytes.size()),
+      *environment_,
+      litert::BufferRef<uint8_t>(tflite_model_.data(), tflite_model_.size()),
       *compile_options);
   if (!model) {
     LOG(ERROR) << "LiteRT embedder: CompiledModel::Create failed: "
                << model.Error().Message();
-    return nullptr;
+    return false;
   }
+  model_ = std::move(*model);
 
   // Derive the token window from the model's single input tensor.
-  auto input_buffers = model->CreateInputBuffers();
+  auto input_buffers = model_->CreateInputBuffers();
   if (!input_buffers || input_buffers->size() != 1) {
     LOG(ERROR) << "LiteRT embedder: expected a single input tensor.";
-    return nullptr;
+    return false;
   }
   auto input_type = (*input_buffers)[0].TensorType();
   if (!input_type) {
     LOG(ERROR) << "LiteRT embedder: cannot read input tensor type.";
-    return nullptr;
+    return false;
   }
-  const size_t input_window_size = ElementCount(*input_type);
-
-  return base::WrapUnique(new BraveLitertPassageEmbedder(
-      std::move(model_bytes), std::move(*environment), std::move(*model),
-      std::move(tokenizer), input_window_size));
+  input_window_size_ = ElementCount(*input_type);
+  return true;
 }
 
 bool BraveLitertPassageEmbedder::Tokenize(const std::string& text,
@@ -174,8 +205,8 @@ bool BraveLitertPassageEmbedder::Tokenize(const std::string& text,
 
 bool BraveLitertPassageEmbedder::Embed(const std::vector<int32_t>& tokens,
                                        std::vector<float>* embedding) {
-  auto ref_inputs = model_.CreateInputBuffers();
-  auto ref_outputs = model_.CreateOutputBuffers();
+  auto ref_inputs = model_->CreateInputBuffers();
+  auto ref_outputs = model_->CreateOutputBuffers();
   if (!ref_inputs || !ref_outputs || ref_inputs->size() != 1) {
     return false;
   }
@@ -191,7 +222,7 @@ bool BraveLitertPassageEmbedder::Embed(const std::vector<int32_t>& tokens,
       return false;
     }
     auto buffer = litert::TensorBuffer::CreateManaged(
-        environment_, litert::TensorBufferType::kHostMemory, *type,
+        *environment_, litert::TensorBufferType::kHostMemory, *type,
         ElementCount(*type) * ElementBytes((*type).ElementType()));
     if (!buffer) {
       return false;
@@ -226,7 +257,7 @@ bool BraveLitertPassageEmbedder::Embed(const std::vector<int32_t>& tokens,
   // Run asynchronously and wait on any per-output completion event before
   // reading, so a GPU read-back does not race device work.
   bool async = true;
-  if (!model_.RunAsync(inputs, outputs, async)) {
+  if (!model_->RunAsync(inputs, outputs, async)) {
     return false;
   }
   for (litert::TensorBuffer& buf : outputs) {

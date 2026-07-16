@@ -9,9 +9,12 @@
 #include <utility>
 #include <vector>
 
+#include "base/command_line.h"
+#include "base/files/file_path.h"
 #include "base/functional/bind.h"
 #include "base/memory/raw_ptr.h"
 #include "base/test/run_until.h"
+#include "base/test/scoped_command_line.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/test/task_environment.h"
 #include "base/test/test_future.h"
@@ -324,6 +327,46 @@ TEST_F(BravePassageEmbeddingsServiceTest, BindLocalAIReceiverForwardsToBatch) {
   ASSERT_TRUE(
       base::test::RunUntil([&] { return fake_factory_.init_count() > 0; }));
   EXPECT_TRUE(load->load_success.Get());
+}
+
+// End-to-end wiring of the native LiteRT embedder through the service: with the
+// dev switches set, BindPassageEmbedder builds a BraveLitertPassageEmbedder on
+// a background sequence and GenerateEmbeddings (driven via the mojo remote)
+// returns a real embedding. Skips unless the local model files are provided:
+//   --litert-poc-model=... --litert-poc-tokenizer=...
+//   [--litert-poc-runtime-lib-dir=...  (GPU; CPU otherwise)]
+TEST_F(BravePassageEmbeddingsServiceTest, LitertEmbedderGeneratesEmbeddings) {
+  const auto* base_cmd = base::CommandLine::ForCurrentProcess();
+  const base::FilePath model = base_cmd->GetSwitchValuePath("litert-poc-model");
+  const base::FilePath tokenizer =
+      base_cmd->GetSwitchValuePath("litert-poc-tokenizer");
+  if (model.empty() || tokenizer.empty()) {
+    GTEST_SKIP() << "Pass --litert-poc-model and --litert-poc-tokenizer.";
+  }
+  const base::FilePath gpu_lib_dir =
+      base_cmd->GetSwitchValuePath("litert-poc-runtime-lib-dir");
+
+  // Feed the local files to the service via its own switches.
+  base::test::ScopedCommandLine scoped_command_line;
+  base::CommandLine* command_line = scoped_command_line.GetProcessCommandLine();
+  command_line->AppendSwitchPath("history-embeddings-litert-model", model);
+  command_line->AppendSwitchPath("history-embeddings-litert-tokenizer",
+                                 tokenizer);
+  if (!gpu_lib_dir.empty()) {
+    command_line->AppendSwitchPath("history-embeddings-litert-gpu-lib-dir",
+                                   gpu_lib_dir);
+  }
+
+  auto load = IssueLoad();
+  EXPECT_TRUE(load->load_success.Get());
+
+  base::test::TestFuture<std::vector<mojom::PassageEmbeddingsResultPtr>> future;
+  load->embedder->GenerateEmbeddings({"The cat slept on the windowsill."},
+                                     mojom::PassagePriority::kUserInitiated,
+                                     future.GetCallback());
+  auto results = future.Take();
+  ASSERT_EQ(results.size(), 1u);
+  EXPECT_FALSE(results[0]->embeddings.empty());
 }
 
 }  // namespace passage_embeddings
