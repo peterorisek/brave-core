@@ -63,6 +63,7 @@ source_set("unit_tests") {
   sources = [
     "brave_batch_passage_embedder_unittest.cc",
     "brave_passage_embeddings_service_unittest.cc",
+    "litert_embedder_poc_unittest.cc",
   ]
 
   deps = [
@@ -76,6 +77,17 @@ source_set("unit_tests") {
     "//mojo/public/cpp/bindings",
     "//services/passage_embeddings/public/mojom",
     "//testing/gtest",
+    "//third_party/litert",
+
+    # LiteRT's runtime is built with use_litert_tflite=false, so it references
+    # TFLite's op resolver and C API without linking them; a standalone binary
+    # must provide them explicitly.
+    "//third_party/tflite",
+    "//third_party/tflite:tflite_builtin_op_resolver",
+
+    # The PoC embeds real sentences, tokenized with the model's SentencePiece
+    # vocabulary.
+    "//third_party/sentencepiece",
   ]
 }
 
