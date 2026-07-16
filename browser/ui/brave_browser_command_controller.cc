@@ -199,14 +199,15 @@ bool BraveBrowserCommandController::IsCommandEnabled(int id) const {
                              : BrowserCommandController::IsCommandEnabled(id);
 }
 
-bool BraveBrowserCommandController::ExecuteCommandWithDisposition(
+bool BraveBrowserCommandController::ExecuteCommandWithDispositionImpl(
     int id,
     WindowOpenDisposition disposition,
-    base::TimeTicks time_stamp) {
+    base::TimeTicks time_stamp,
+    std::optional<actions::ActionInvocationContext> context) {
   return IsBraveCommands(id) || IsBraveOverrideCommands(id)
              ? ExecuteBraveCommandWithDisposition(id, disposition, time_stamp)
-             : BrowserCommandController::ExecuteCommandWithDisposition(
-                   id, disposition, time_stamp);
+             : BrowserCommandController::ExecuteCommandWithDispositionImpl(
+                   id, disposition, time_stamp, std::move(context));
 }
 
 void BraveBrowserCommandController::AddCommandObserver(
