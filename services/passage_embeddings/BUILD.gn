@@ -1,0 +1,59 @@
+# Copyright (c) 2026 The Brave Authors. All rights reserved.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# Native EmbeddingGemma passage embedder running on LiteRT's CompiledModel
+# (Metal GPU or CPU), a drop-in mojom::PassageEmbedder for the WASM path. Lives
+# in the services layer so the sandboxed passage_embeddings utility process can
+# link it without a browser -> services layering violation.
+source_set("litert_passage_embedder") {
+  sources = [
+    "brave_litert_passage_embedder.cc",
+    "brave_litert_passage_embedder.h",
+  ]
+
+  # Exposed as public_deps because the public header includes litert's
+  # CompiledModel/Environment (whose internal includes need litert's include
+  # config), the PassageEmbedder mojom, and mojo bindings.
+  public_deps = [
+    "//base",
+    "//mojo/public/cpp/bindings",
+    "//services/passage_embeddings/public/mojom",
+    "//third_party/litert",
+  ]
+
+  deps = [
+    "//third_party/sentencepiece",
+
+    # LiteRT's runtime is built with use_litert_tflite=false, so it references
+    # TFLite's op resolver and C API without linking them.
+    "//third_party/tflite",
+    "//third_party/tflite:tflite_builtin_op_resolver",
+  ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+  sources = [ "brave_litert_passage_embedder_unittest.cc" ]
+
+  deps = [
+    ":litert_passage_embedder",
+    "//base",
+    "//base/test:test_support",
+    "//mojo/public/cpp/bindings",
+    "//services/passage_embeddings/public/mojom",
+    "//testing/gtest",
+    "//third_party/litert",
+
+    # LiteRT's runtime is built with use_litert_tflite=false, so it references
+    # TFLite's op resolver and C API without linking them; a standalone binary
+    # must provide them explicitly.
+    "//third_party/tflite",
+    "//third_party/tflite:tflite_builtin_op_resolver",
+
+    # The tests embed real sentences, tokenized with the model's SentencePiece
+    # vocabulary.
+    "//third_party/sentencepiece",
+  ]
+}

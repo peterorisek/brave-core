@@ -16,7 +16,7 @@
 // Without the model/tokenizer switches the tests skip; without the
 // runtime-lib-dir the Gpu/* instantiation skips.
 
-#include "brave/browser/history_embeddings/brave_litert_passage_embedder.h"
+#include "brave/services/passage_embeddings/brave_litert_passage_embedder.h"
 
 #include <cmath>
 #include <cstdint>

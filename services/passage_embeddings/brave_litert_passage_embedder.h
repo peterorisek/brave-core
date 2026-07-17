@@ -3,8 +3,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-#ifndef BRAVE_BROWSER_HISTORY_EMBEDDINGS_BRAVE_LITERT_PASSAGE_EMBEDDER_H_
-#define BRAVE_BROWSER_HISTORY_EMBEDDINGS_BRAVE_LITERT_PASSAGE_EMBEDDER_H_
+#ifndef BRAVE_SERVICES_PASSAGE_EMBEDDINGS_BRAVE_LITERT_PASSAGE_EMBEDDER_H_
+#define BRAVE_SERVICES_PASSAGE_EMBEDDINGS_BRAVE_LITERT_PASSAGE_EMBEDDER_H_
 
 #include <cstdint>
 #include <memory>
@@ -117,4 +117,4 @@ class BraveLitertPassageEmbedder
 
 }  // namespace brave_history_embeddings
 
-#endif  // BRAVE_BROWSER_HISTORY_EMBEDDINGS_BRAVE_LITERT_PASSAGE_EMBEDDER_H_
+#endif  // BRAVE_SERVICES_PASSAGE_EMBEDDINGS_BRAVE_LITERT_PASSAGE_EMBEDDER_H_

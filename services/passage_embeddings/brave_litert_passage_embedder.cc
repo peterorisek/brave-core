@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-#include "brave/browser/history_embeddings/brave_litert_passage_embedder.h"
+#include "brave/services/passage_embeddings/brave_litert_passage_embedder.h"
 
 #include <algorithm>
 #include <utility>
