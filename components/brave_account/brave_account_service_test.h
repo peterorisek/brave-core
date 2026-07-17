@@ -70,7 +70,7 @@ struct ChangePasswordVerifyCompleteTestCase;
 struct ChangePasswordVerifyInitTestCase;
 struct GetServiceTokenTestCase;
 struct LoginFinalizeTestCase;
-struct LoginInitializeTestCase;
+struct LoginInitTestCase;
 struct LogOutTestCase;
 struct RegisterPasswordFinalizeTestCase;
 struct RegisterPasswordInitTestCase;
@@ -127,7 +127,7 @@ class BraveAccountServiceTest : public testing::TestWithParam<const TestCase*> {
         std::is_same_v<TestCase, ChangePasswordVerifyInitTestCase> ||
         std::is_same_v<TestCase, GetServiceTokenTestCase> ||
         std::is_same_v<TestCase, LoginFinalizeTestCase> ||
-        std::is_same_v<TestCase, LoginInitializeTestCase> ||
+        std::is_same_v<TestCase, LoginInitTestCase> ||
         std::is_same_v<TestCase, RegisterPasswordFinalizeTestCase> ||
         std::is_same_v<TestCase, RegisterPasswordInitTestCase> ||
         std::is_same_v<TestCase, RegisterVerifyCompleteTestCase> ||

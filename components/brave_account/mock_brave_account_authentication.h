@@ -83,11 +83,11 @@ class MockBraveAccountAuthentication : public mojom::Authentication {
               (override));
 
   MOCK_METHOD(void,
-              LoginInitialize,
+              LoginInit,
               (mojom::Service initiating_service,
                const std::string& email,
                const std::string& serialized_ke1,
-               LoginInitializeCallback callback),
+               LoginInitCallback callback),
               (override));
 
   MOCK_METHOD(void,

@@ -9,10 +9,8 @@
 #include <string>
 
 #include "base/memory/scoped_refptr.h"
-#include "base/memory/weak_ptr.h"
 #include "brave/components/brave_account/brave_account_state_prefs.h"
-#include "brave/components/brave_account/endpoints/login_finalize.h"
-#include "brave/components/brave_account/endpoints/login_init.h"
+#include "brave/components/brave_account/login.h"
 #include "brave/components/brave_account/mojom/brave_account.mojom.h"
 #include "brave/components/brave_account/register.h"
 #include "brave/components/brave_account/reset_password.h"
@@ -26,9 +24,9 @@ class SharedURLLoaderFactory;
 namespace brave_account {
 
 // `mojom::Authentication` surface available before login:
-// `LoginInitialize()` and `LoginFinalize()`,
-// plus the registration and password-reset steps,
-// which are delegated to the `register_` and `reset_password_` helpers.
+// the login, registration, and password-reset steps,
+// which are delegated to the `login_`, `register_`, and `reset_password_`
+// helpers.
 // `ResendVerificationEmail()` and `CancelVerification()` are fully
 // handled by `StateBase` for both states.
 // All other methods inherit `StateBase`'s wrong-state default.
@@ -76,25 +74,18 @@ class LoggedOutState : public StateBase {
       const std::string& email,
       ResetPasswordPasswordFinalizeCallback callback) override;
 
-  void LoginInitialize(mojom::Service initiating_service,
-                       const std::string& email,
-                       const std::string& serialized_ke1,
-                       LoginInitializeCallback callback) override;
+  void LoginInit(mojom::Service initiating_service,
+                 const std::string& email,
+                 const std::string& serialized_ke1,
+                 LoginInitCallback callback) override;
 
   void LoginFinalize(const std::string& encrypted_login_token,
                      const std::string& client_mac,
                      LoginFinalizeCallback callback) override;
 
-  void OnLoginInitialize(LoginInitializeCallback callback,
-                         endpoints::LoginInit::Response response);
-
-  void OnLoginFinalize(LoginFinalizeCallback callback,
-                       endpoints::LoginFinalize::Response response);
-
+  Login login_{*this};
   Register register_{*this};
   ResetPassword reset_password_{*this};
-
-  base::WeakPtrFactory<LoggedOutState> weak_factory_{this};
 };
 
 }  // namespace brave_account
