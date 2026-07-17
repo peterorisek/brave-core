@@ -4,6 +4,19 @@
 # You can obtain one at https://mozilla.org/MPL/2.0/.
 
 if (is_mac) {
+  # Bundles the prebuilt Metal GPU accelerator into the app's Libraries dir so
+  # the sandboxed on-device-model utility process can dlopen it (Seatbelt only
+  # allows the bundle), mirroring optimization_guide_library. The embedder finds
+  # it via FrameworkBundlePath()/Libraries.
+  # TODO(litert-poc): the .dylib is currently the locally-materialized prebuilt;
+  # replace with component/DEPS delivery.
+  bundle_data("litert_metal_accelerator_bundle_data") {
+    sources = [ "//third_party/litert/src/litert/prebuilt/macos_arm64/libLiteRtMetalAccelerator.dylib" ]
+    outputs = [ "{{bundle_contents_dir}}/Libraries/{{source_file_part}}" ]
+  }
+}
+
+if (is_mac) {
   # metal_info.cc is Objective-C++ (imports <Metal/Metal.h>, uses ARC) despite
   # its .cc extension, so it needs its own target to force the ObjC++ language
   # and link the Metal/Foundation frameworks. Only the Metal device handle lives
