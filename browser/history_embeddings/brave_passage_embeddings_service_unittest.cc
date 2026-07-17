@@ -19,6 +19,7 @@
 #include "base/test/task_environment.h"
 #include "base/test/test_future.h"
 #include "brave/browser/history_embeddings/brave_batch_passage_embedder.h"
+#include "brave/browser/history_embeddings/features.h"
 #include "brave/components/local_ai/core/background_web_contents.h"
 #include "brave/components/local_ai/core/local_ai.mojom.h"
 #include "components/history_embeddings/core/history_embeddings_features.h"

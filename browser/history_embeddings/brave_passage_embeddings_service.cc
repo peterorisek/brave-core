@@ -16,6 +16,7 @@
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "brave/browser/history_embeddings/brave_litert_passage_embedder.h"
+#include "brave/browser/history_embeddings/features.h"
 #include "components/history_embeddings/core/history_embeddings_features.h"
 
 namespace passage_embeddings {
@@ -40,10 +41,6 @@ constexpr char kDefaultAcceleratorDir[] =
     "prebuilt/macos_arm64";
 
 }  // namespace
-
-BASE_FEATURE(kBraveHistoryEmbeddingsLitertGpu,
-             "BraveHistoryEmbeddingsLitertGpu",
-             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // static
 bool BravePassageEmbeddingsService::ShouldUseLitertEmbedder() {

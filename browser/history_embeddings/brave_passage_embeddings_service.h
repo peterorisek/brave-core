@@ -8,7 +8,6 @@
 
 #include <memory>
 
-#include "base/feature_list.h"
 #include "base/functional/callback.h"
 #include "base/memory/weak_ptr.h"
 #include "base/threading/sequence_bound.h"
@@ -22,12 +21,6 @@ class BraveLitertPassageEmbedder;
 }  // namespace brave_history_embeddings
 
 namespace passage_embeddings {
-
-// Selects the native LiteRT EmbeddingGemma embedder (CompiledModel, GPU/CPU)
-// over the WASM worker. Disabled by default; the model is currently sourced
-// from a local file via the --history-embeddings-litert-model switch (component
-// delivery is a later step).
-BASE_DECLARE_FEATURE(kBraveHistoryEmbeddingsLitertGpu);
 
 // In-process implementation of
 // passage_embeddings::mojom::PassageEmbeddingsService. Takes the place of

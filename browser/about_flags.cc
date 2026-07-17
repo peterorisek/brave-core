@@ -8,6 +8,7 @@
 #include <initializer_list>
 
 #include "brave/browser/brave_browser_features.h"
+#include "brave/browser/history_embeddings/features.h"
 #include "brave/browser/net/features.h"
 #include "brave/browser/ui/brave_ui_features.h"
 #include "brave/browser/updater/buildflags.h"
@@ -895,6 +896,16 @@ constexpr flags_ui::FeatureEntry::Choice kVerticalTabCollapseDelayChoices[] = {
 
 #define BRAVE_ABOUT_FLAGS_FEATURE_ENTRIES                                      \
   EXPAND_FEATURE_ENTRIES(                                                      \
+      {                                                                        \
+          "brave-history-embeddings-litert-gpu",                               \
+          "History embeddings via LiteRT GPU (PoC)",                           \
+          "Runs the history embeddings model (EmbeddingGemma) natively on "    \
+          "LiteRT (Metal GPU, or CPU) instead of the WASM worker. "            \
+          "Proof-of-concept: uses a local model file.",                        \
+          kOsMac,                                                              \
+          FEATURE_VALUE_TYPE(                                                  \
+              passage_embeddings::kBraveHistoryEmbeddingsLitertGpu),           \
+      },                                                                       \
       {                                                                        \
           "brave-v8-jitless-mode",                                             \
           "V8 Jitless mode",                                                   \
