@@ -21,6 +21,7 @@ export function TopSitesPanel() {
   const actions = useTopSitesActions()
 
   const showTopSites = useTopSitesState((s) => s.showTopSites)
+  const showSponsoredSites = useTopSitesState((s) => s.showSponsoredSites)
   const listKind = useTopSitesState((s) => s.topSitesListKind)
 
   function renderSelectedMarker(kind: TopSitesListKind) {
@@ -48,6 +49,20 @@ export function TopSitesPanel() {
           {getString(S.NEW_TAB_SHOW_TOP_SITES_LABEL)}
         </span>
       </Toggle>
+      {showTopSites && (
+        <Toggle
+          className='toggle-row'
+          size='small'
+          checked={showSponsoredSites}
+          onChange={({ checked }) => {
+            actions.setShowSponsoredSites(checked)
+          }}
+        >
+          <span className='label'>
+            {getString(S.NEW_TAB_SHOW_SPONSORED_SITES_LABEL)}
+          </span>
+        </Toggle>
+      )}
       {showTopSites && (
         <div className='list-view-options'>
           <button
@@ -77,7 +92,9 @@ export function TopSitesPanel() {
             <div className='list-view-image'>
               {renderSelectedMarker(TopSitesListKind.kMostVisited)}
             </div>
-            <h4>{getString(S.NEW_TAB_TOP_SITES_MOST_VISITED_OPTION_TITLE)}</h4>
+            <h4>
+              {getString(S.NEW_TAB_TOP_SITES_MOST_VISITED_OPTION_TITLE)}
+            </h4>
             <p>{getString(S.NEW_TAB_TOP_SITES_MOST_VISITED_OPTION_TEXT)}</p>
           </button>
         </div>
