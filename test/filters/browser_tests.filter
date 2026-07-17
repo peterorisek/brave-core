@@ -253,7 +253,6 @@
 -CredentialManagerAvatarTest.*AvatarFetchIsolatedPerOrigin
 -CredentialManagerAvatarWithUnifiedUiDisabledTest.AvatarFetchIsolatedPerOrigin
 -IsolatedOriginNTPBrowserTest.IsolatedOriginDoesNotInterfereWithNTP
--NewTabPageNavigationThrottleFencedFrameTest.FencedFrameDoesNotResetNewTabStartTime
 -NotificationPermissionBrowserTest.NonPersistentNotificationThirdPartyCountMetricTest # Histogram does not exist
 -OpenWindowFromNTPBrowserTest.TransferFromNTPCreateNewTab # not InstantProcess
 -ProfilePickerViewBrowserTest.ShowScreen_*
@@ -384,7 +383,6 @@
 -All/SharedStoragePrivateAggregationChromeBrowserTest.*
 -BrowsingDataModelBrowserTest.SharedStorageAccessReportedCorrectly
 -BrowsingDataModelBrowserTest.SharedStorageHandledCorrectly
--ExternalProtocolHandlerSandboxFencedFrameBrowserTest.SandboxAllowTopNavigationByUserActivationWithGestureInFencedFrame
 -SharedStorageExtensionBrowserTest.*
 -SharedStorageFencedFrameChromeBrowserTest.*
 
@@ -629,8 +627,6 @@
 -All/ParentApprovalRequestTest.RequestToInstallExtensionMissingCustodianInfo/0
 -All/SupervisedUserServiceForRegularUsersBrowserTest.ForceGoogleSafeSearchCanBeOverriden/Regular
 -AppMenuBrowserTest.InvokeUi_main_profile_signed_in
--AppMenuBrowserTest.InvokeUi_profile_menu_in_app_menu_signed_in
--AppMenuBrowserTest.InvokeUi_profile_menu_in_app_menu_signin_not_allowed
 -AuthenticatorDialogTest.InvokeUi*
 -AvatarToolbarButtonAiRingBrowserTest.PrefChangeTriggersLayoutAndIconUpdate
 -AvatarToolbarButtonAiRingBrowserTest.SigninPendingSuppressesAiRing
@@ -732,10 +728,8 @@
 -All/OidcAuthenticationSigninInterceptorTest.PolicyRecoveryFromPref/1
 -All/OidcAuthenticationSigninInterceptorTest.ProfileCreationThenSwitch/1
 -All/SigninUiUtilExtensionsTest_ReplaceSyncPromosWithSignInPromos.ShowExtensionSigninPrompt/*
--SigninViewControllerSignInBanner.NavigateAwayBeforeBluetoothResolved
--SigninViewControllerSignInBanner.Visibility
--SigninViewControllerSignInBannerNoBluetooth.BluetoothUnavailable
 -SigninUiUtilExtensionsTest.ShowExtensionSigninPromptReauth
+-SigninViewControllerSignInBanner*.*
 
 # These tests fail because they expect being signed into the primary account on
 # the web.
@@ -994,6 +988,7 @@
 -MixedContentSettingsTabHelperFencedFrameBrowserTest.IgnoreInsecureContentInFencedFrame
 -NavigationPredictorFencedFrameBrowserTest.EnsureFencedFrameDoesNotCreateNavigationPredictor
 -NetErrorTabHelperWithFencedFrameTest.CanRunDiagnosticsDialogOnFencedFrame
+-NewTabPageNavigationThrottleFencedFrameTest.FencedFrameDoesNotResetNewTabStartTime
 -NewTabPageNavigationThrottleFencedFrameTest.FencedFrameShouldNotAffectTitle
 -NoStatePrefetchFencedFrameBrowserTest.*
 -PageLoadMetricsBrowserTestWithFencedFrames.PageLoadPrivacySandboxAdsFencedFramesMetrics
@@ -1004,6 +999,7 @@
 -PictureInPictureWindowControllerFencedFrameBrowserTest.FencedFrameShouldNotCloseWindow
 -PlatformAppNavigationRedirectorFencedFrameBrowserTest.DoNotLaunchAppInFencedFrames
 -PrintFencedFrameBrowserTest.*
+-RemoteActorCredentialSharingFencedFrameBrowserTest.ApiNotExposedInFencedFrames
 -SBNavigationObserverBrowserTest.FencedFrameNavigationEventsAndReferrerChain
 -SSLFencedFrameBrowserTest.CertErrorInFencedFrame
 -SSLFencedFrameBrowserTest.InAppTestProceededBadCertPageInFencedFrame
@@ -2369,6 +2365,20 @@
 # This test fails because it expects the hardcoded product name Chromium, but
 # instead gets Brave.
 -All/BrowserAppMenuButtonDumpAccessibilityEventsTest.AppMenuButtonExpandCollapseStateChanged/uia_ViewsAXEnabled
+
+# These tests open the app menu's profile submenu via
+# `AppMenuModel::kProfileMenuPlaceholder`, but
+# `BraveAppMenuModel::RemoveUpstreamMenus()` unconditionally removes that
+# placeholder (we move "Add new profile" into the "More tools" submenu instead).
+# GetMenuItemByID() then returns null and
+# `MenuController::SelectItemAndOpenSubmenu()` DCHECKs and crashes, regardless
+# of the scenario each test is exercising (signin state, AI subscription ring
+# state, etc).
+-AppMenuAiRingBrowserTest.InvokeUi_profile_menu_in_app_menu_no_ring
+-AppMenuAiRingBrowserTest.InvokeUi_profile_menu_in_app_menu_single_ring
+-AppMenuAiRingBrowserTest.InvokeUi_profile_menu_in_app_menu_two_consecutive_rings
+-AppMenuBrowserTest.InvokeUi_profile_menu_in_app_menu_signed_in
+-AppMenuBrowserTest.InvokeUi_profile_menu_in_app_menu_signin_not_allowed
 
 # Tests below this point have not been diagnosed or had issues created yet.
 -All/DeclarativeNetRequestBrowserTest.RendererCacheCleared/*
