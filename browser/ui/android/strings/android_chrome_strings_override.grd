@@ -149,6 +149,14 @@ CHAR_LIMIT guidelines:
       <message name="IDS_ACCESSIBILITY_TAB_SWITCHER_INCOGNITO_STACK" desc="Content description for the Private stack selection 'button'.">
         Private tabs
       </message>
+      <message name="IDS_CONTEXTMENU_OPEN_ALL_IN_INCOGNITO_WINDOW_PLURAL" desc="Context sensitive menu item to open all bookmarks in a private window. [ICU Syntax]">
+        {NUM_BOOKMARKS, plural,
+          =1 {Open in Private window}
+          other {Open all (#) in Private window}}
+      </message>
+      <message name="IDS_CONTEXTMENU_OPEN_ALL_IN_INCOGNITO_WINDOW" desc="Context sensitive menu item to open all bookmarks in a private window when there are no bookmarks. [CHAR_LIMIT=30]">
+        Open all in Private window
+      </message>
       <message name="IDS_CONTEXTMENU_OPEN_IN_INCOGNITO_TAB" desc="Context sensitive menu item to open the selected link in a new Private tab. [CHAR_LIMIT=30]">
         Open in Private tab
       </message>
