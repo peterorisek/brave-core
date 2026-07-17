@@ -333,7 +333,7 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
  
  import {html} from '//resources/lit/v3_0/lit.rollup.js';
  
-@@ -9,98 +7,46 @@
+@@ -9,101 +7,46 @@
  export function getHtml(this: PowerBookmarksAppElement) {
    // clang-format off
    return html\`<!--_html_template_start_-->
@@ -397,7 +397,10 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
 -        ?hidden="\${this.hideAddTabButton_()}"
 -        @click="\${this.onAddTabClick_}"
 -        ?disabled="\${!this.canAddCurrentUrl_}">
--      <cr-icon slot="prefix-icon" icon="sp:add-circle"></cr-icon>
+-      <cr-icon slot="prefix-icon"
+-          icon="\${this.webuiRoundedIconsEnabled_
+-              ? 'sp:add-circle'
+-              : 'sp:add-circle-old'}"></cr-icon>
 +  <sp-footer id="footer" ?hidden="\${!this.sectionVisibility_.footer}" pinned="">
 +    <cr-button id="addCurrentTabButton" class="floating-button" ?hidden="\${this.hideAddTabButton_()}" @click="\${this.onAddTabClick_}" ?disabled="\${!this.canAddCurrentUrl_}">
 +      <cr-icon slot="prefix-icon" icon="plus-add"></cr-icon>
@@ -448,7 +451,7 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
  
  <cr-dialog id="disabledFeatureDialog">
    <div slot="body" class="dialog-body">
-@@ -113,14 +59,9 @@
+@@ -116,14 +59,9 @@
      </cr-button>
    </div>
  </cr-dialog>
@@ -711,7 +714,7 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
 "===================================================================
 --- ../chrome/browser/resources/signin/profile_picker/profile_card.html.ts
 +++ gen/chrome/browser/resources/signin/profile_picker/preprocessed/profile_card.html.ts
-@@ -5,56 +5,38 @@
+@@ -5,59 +5,40 @@
  
  export function getHtml(this: ProfileCardElement) {
    return html\`<!--_html_template_start_-->
@@ -740,7 +743,11 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
 -        ?hidden="\${!this.profileState.needsSignin}">
 +    <div id="forceSigninContainer" class="profile-card-info secondary-text" ?hidden="\${!this.profileState.needsSignin}">
        <div>$i18n{needsSigninPrompt}</div>
-       <cr-icon id="forceSigninIcon" icon="profiles:lock"></cr-icon>
+-      <cr-icon id="forceSigninIcon"
+-          icon="\${
++      <cr-icon id="forceSigninIcon" icon="\${
+       this.webuiRoundedIconsEnabled_ ? 'profiles:lock-filled' :
+                                        'profiles:lock-old'}"></cr-icon>
      </div>
    </cr-button>
    <div id="profileNameInputWrapper">
@@ -797,7 +804,7 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
      <div class="subtitle" .innerHTML="\${this.getSubtitle_()}"></div>
    </div>
    <div id="profilesWrapper" ?hidden="\${(this.shouldHideProfilesWrapper_())}">
-@@ -24,31 +23,22 @@
+@@ -24,33 +23,23 @@
              @toggle-drag="\${this.onToggleDrag_}"
              @disable-all-picker-buttons="\${this.onDisableAllPickerButtons_}">
          </profile-card>
@@ -813,7 +820,7 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
 +        <div id="addProfileButtonLabel" class="profile-card-info prominent-text">
            $i18n{addSpaceButton}
          </div>
-         <cr-icon icon="profiles:add"></cr-icon>
+         <cr-icon icon="profiles:add-custom"></cr-icon>
        </cr-button>
      </div>
    </div>
@@ -828,11 +835,14 @@ exports[`mangled files should have up to date snapshots ./chromium_src/chrome/br
 -      @click="\${this.onLaunchGuestProfileClick_}"
 -      ?hidden="\${!this.guestModeEnabled_}"
 -      ?disabled="\${this.pickerButtonsDisabled_}">
+-    <cr-icon
+-        icon="\${this.webuiRoundedIconsEnabled_
 +  <cr-button id="browseAsGuestButton" @click="\${this.onLaunchGuestProfileClick_}" ?hidden="\${!this.guestModeEnabled_}" ?disabled="\${this.pickerButtonsDisabled_}">
-     <cr-icon icon="profiles:account-box" slot="prefix-icon"></cr-icon>
++    <cr-icon icon="\${this.webuiRoundedIconsEnabled_
+             ? 'profiles:account-box'
+             : 'profiles:account-box-old'}" slot="prefix-icon"></cr-icon>
      $i18n{browseAsGuestButton}
    </cr-button>
- 
 "
 `;
 
