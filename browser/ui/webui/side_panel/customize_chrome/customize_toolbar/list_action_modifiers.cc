@@ -12,6 +12,7 @@
 #include "base/containers/fixed_flat_set.h"
 #include "base/strings/utf_string_conversions.h"
 #include "brave/browser/ui/screenshot/features.h"
+#include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/webui/side_panel/customize_chrome/customize_toolbar/brave_action.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/brave_news/common/buildflags/buildflags.h"
@@ -233,6 +234,10 @@ std::vector<BraveAction> ListBraveSpecificActions(
   std::vector<BraveAction> brave_actions;
   brave_actions.push_back(kShowAddBookmarkButton);
   brave_actions.push_back(kShowSidePanelAction);
+
+  if (prefs->GetBoolean(brave_tabs::kVerticalTabsEnabled)) {
+    brave_actions.push_back(kShowVerticalTabToggleButtonAction);
+  }
 
   // Followings are dynamic actions: anchor to TabSearchButton and append to
   // action list in reverse order.
