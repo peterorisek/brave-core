@@ -1,5 +1,5 @@
 diff --git a/chrome/browser/ui/views/frame/browser_frame_view_win.cc b/chrome/browser/ui/views/frame/browser_frame_view_win.cc
-index f829637e458406aa6ea660a4af017e39df321c24..b19227e1283b9d37fbebf6dfa208931db1d8754b 100644
+index 032e9d026cff54b91c14d6b7d933535cdf29c811..9d3f32252d8b076ac76bf3e434d16deddd48ff99 100644
 --- a/chrome/browser/ui/views/frame/browser_frame_view_win.cc
 +++ b/chrome/browser/ui/views/frame/browser_frame_view_win.cc
 @@ -179,7 +179,7 @@ BrowserFrameViewWin::BrowserFrameViewWin(BrowserWidget* widget,

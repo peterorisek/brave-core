@@ -1,8 +1,8 @@
 diff --git a/chrome/browser/ui/views/tabs/common/tab_strip_view.cc b/chrome/browser/ui/views/tabs/common/tab_strip_view.cc
-index 48ef06476b0368819774ba39e98b5ed6c5c5b2e6..6adc5ac1f3ab633b53e8bb722a200f83dbfd9c2e 100644
+index 535cb0dd2e8e87e68dc64cbf8f68f4e2f7e8f844..c95de9a97e11b69fe61a96f321aa38d34ae3ebc2 100644
 --- a/chrome/browser/ui/views/tabs/common/tab_strip_view.cc
 +++ b/chrome/browser/ui/views/tabs/common/tab_strip_view.cc
-@@ -316,6 +316,8 @@ void TabStripView::OnChildMoved(TabCollectionNode* moved_node) {
+@@ -265,6 +265,8 @@ void TabStripView::OnChildMoved(TabCollectionNode* moved_node) {
  
    if (is_active_tab || has_focus) {
      switch (moved_node->type()) {

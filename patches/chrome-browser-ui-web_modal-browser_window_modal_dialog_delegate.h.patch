@@ -1,5 +1,5 @@
 diff --git a/chrome/browser/ui/web_modal/browser_window_modal_dialog_delegate.h b/chrome/browser/ui/web_modal/browser_window_modal_dialog_delegate.h
-index b72d333bb51b47a2e5e1baaaab7659bc2ff7963a..f58b1f1a660d2405eadbf2737ca5f29720490ecf 100644
+index 54ff1d613d36187021834e1322dc34b74fc14efe..5d8a1313a902de773481e1f1ad2d827c610637fc 100644
 --- a/chrome/browser/ui/web_modal/browser_window_modal_dialog_delegate.h
 +++ b/chrome/browser/ui/web_modal/browser_window_modal_dialog_delegate.h
 @@ -31,6 +31,7 @@ class BrowserWindowModalDialogDelegate

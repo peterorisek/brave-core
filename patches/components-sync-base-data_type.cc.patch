@@ -1,5 +1,5 @@
 diff --git a/components/sync/base/data_type.cc b/components/sync/base/data_type.cc
-index 051f6ec2c8cf6734ad92d831b25b6299707592d8..b5e1d71bed1782bfabdef6b6d25f46484bff137e 100644
+index 5e76f0d98db86b329ac146423d229eece28ddc5b..0ee35e7416d6ec0e2c4b15c4d224e33f3bfeed14 100644
 --- a/components/sync/base/data_type.cc
 +++ b/components/sync/base/data_type.cc
 @@ -1197,10 +1197,25 @@ constexpr std::array<DataTypeInfo, syncer::GetNumDataTypes()>

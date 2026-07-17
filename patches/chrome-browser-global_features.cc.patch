@@ -1,8 +1,8 @@
 diff --git a/chrome/browser/global_features.cc b/chrome/browser/global_features.cc
-index 6a474328b9860a84e78b214a77133caf7fcca750..8d2af594ca4edfc92aa63244c491fb17fad740fd 100644
+index b4f535229df620a63276ce071d3eaed1b218281b..e21348c28a80629ab17377271734cb507ef24c45 100644
 --- a/chrome/browser/global_features.cc
 +++ b/chrome/browser/global_features.cc
-@@ -84,6 +84,7 @@
+@@ -86,6 +86,7 @@
  #include "ui/base/ui_base_features.h"
  #endif
  
@@ -10,7 +10,7 @@ index 6a474328b9860a84e78b214a77133caf7fcca750..8d2af594ca4edfc92aa63244c491fb17
  namespace {
  
  // This is the generic entry point for test code to stub out browser
-@@ -102,7 +103,7 @@ std::unique_ptr<GlobalFeatures> GlobalFeatures::CreateGlobalFeatures() {
+@@ -104,7 +105,7 @@ std::unique_ptr<GlobalFeatures> GlobalFeatures::CreateGlobalFeatures() {
      return GetFactory().Run();
    }
    // Constructor is protected.
