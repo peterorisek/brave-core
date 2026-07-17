@@ -1,0 +1,4 @@
+include_rules = [
+  "+brave/components/local_ai/buildflags",
+  "+brave/services/passage_embeddings",
+]

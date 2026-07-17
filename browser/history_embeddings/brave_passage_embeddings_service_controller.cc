@@ -23,9 +23,11 @@
 #include "brave/components/local_ai/core/utils.h"
 #include "brave/grit/brave_generated_resources.h"
 #include "chrome/browser/profiles/profile.h"
+#include "components/optimization_guide/proto/passage_embeddings_model_metadata.pb.h"
 #include "components/passage_embeddings/core/passage_embeddings_features.h"
 #include "components/passage_embeddings/core/passage_embeddings_service_launcher.h"
 #include "components/passage_embeddings/core/passage_embeddings_types.h"
+#include "content/public/browser/service_process_host.h"
 #include "mojo/public/cpp/base/big_buffer.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
 #include "url/gurl.h"
@@ -33,6 +35,22 @@
 namespace passage_embeddings {
 
 namespace {
+
+// PoC dev defaults for the native LiteRT embedder so launching only needs the
+// feature flag. These are local absolute paths and will be replaced by
+// component delivery.
+// TODO(litert-poc): remove once the model is shipped via component updater.
+constexpr char kDefaultLitertModelPath[] =
+    "/Users/darkdh/Projects/embeddinggemma-300m/"
+    "embeddinggemma-300M_seq512_mixed-precision.tflite";
+constexpr char kSentencePieceModelName[] = "sentencepiece.model";
+// Matches the seq512 model's input window. The embedder itself derives the
+// actual window from the model's input tensor, so this only feeds the metadata
+// the controller reports; keep it in sync with the model above.
+constexpr uint32_t kLitertInputWindowSize = 512;
+constexpr int kLitertOutputSize = 768;
+constexpr double kLitertScoreThreshold = 0.45;
+constexpr int kLitertModelVersion = 2;
 
 mojom::PassagePriority ToMojom(PassagePriority priority) {
   switch (priority) {
@@ -126,6 +144,33 @@ class StubServiceLauncher : public PassageEmbeddingsServiceLauncher {
   bool AllowedToLaunch() const override { return false; }
 };
 
+// Launches the real sandboxed Passage Embeddings utility process. Used for the
+// native LiteRT embedder, whose LoadModels is chromium_src-overridden to run
+// EmbeddingGemma on LiteRT's CompiledModel inside that process.
+class LitertServiceLauncher : public PassageEmbeddingsServiceLauncher {
+ public:
+  static PassageEmbeddingsServiceLauncher& Create() {
+    static base::NoDestructor<LitertServiceLauncher> launcher;
+    return *launcher;
+  }
+
+  void LaunchService(mojo::PendingReceiver<mojom::PassageEmbeddingsService>
+                         receiver) override {
+    content::ServiceProcessHost::Launch<mojom::PassageEmbeddingsService>(
+        std::move(receiver), content::ServiceProcessHost::Options()
+                                 .WithDisplayName("Passage Embeddings Service")
+                                 .Pass());
+  }
+  void OnServiceDisconnected(bool is_idle) override {}
+  bool AllowedToLaunch() const override { return true; }
+};
+
+PassageEmbeddingsServiceLauncher& GetServiceLauncher() {
+  return BravePassageEmbeddingsService::ShouldUseLitertEmbedder()
+             ? LitertServiceLauncher::Create()
+             : StubServiceLauncher::Create();
+}
+
 }  // namespace
 
 // static
@@ -137,12 +182,33 @@ BravePassageEmbeddingsServiceController::Get() {
 
 BravePassageEmbeddingsServiceController::
     BravePassageEmbeddingsServiceController()
-    : PassageEmbeddingsServiceController(StubServiceLauncher::Create()) {
+    : PassageEmbeddingsServiceController(
+          GetServiceLauncher(),
+          /*execute_for_gemma=*/
+          BravePassageEmbeddingsService::ShouldUseLitertEmbedder()) {
   // AddObserver re-fires OnLocalModelsReady synchronously if the
   // component is already installed; our handler sets model_dir_ready_
   // and notifies observer_list_ via EmbedderMetadataUpdated.
   updater_state_observation_.Observe(
       local_ai::LocalModelsUpdaterState::GetInstance());
+
+  if (BravePassageEmbeddingsService::ShouldUseLitertEmbedder()) {
+    // The LiteRT path reuses the base-class launch + LoadModels flow, which
+    // opens these files and sends them to the utility process. Point them at
+    // the local EmbeddingGemma model (accessed as a friend of the base class).
+    // The accelerator ships in the app bundle, so nothing else is needed here.
+    embeddings_model_path_ = base::FilePath::FromASCII(kDefaultLitertModelPath);
+    sp_model_path_ =
+        embeddings_model_path_.DirName().Append(kSentencePieceModelName);
+    optimization_guide::proto::PassageEmbeddingsModelMetadata metadata;
+    metadata.set_input_window_size(kLitertInputWindowSize);
+    metadata.set_output_size(kLitertOutputSize);
+    metadata.set_score_threshold(kLitertScoreThreshold);
+    model_metadata_ = std::move(metadata);
+    model_version_ = kLitertModelVersion;
+    observer_list_.Notify(&EmbedderMetadataObserver::EmbedderMetadataUpdated,
+                          GetEmbedderMetadata());
+  }
 }
 
 BravePassageEmbeddingsServiceController::
@@ -202,6 +268,10 @@ void BravePassageEmbeddingsServiceController::OnProfileWillBeDestroyed(
 }
 
 bool BravePassageEmbeddingsServiceController::IsModelAvailable() {
+  if (BravePassageEmbeddingsService::ShouldUseLitertEmbedder()) {
+    // The LiteRT model paths are set up in the constructor from local files.
+    return !embeddings_model_path_.empty();
+  }
   // Mirrors upstream's "do we have a model path to load from?" check
   // — true once LocalModelsUpdaterState reports the component is
   // installed. SchedulingEmbedder retries on the
@@ -244,6 +314,14 @@ void BravePassageEmbeddingsServiceController::GetEmbeddings(
     std::vector<std::string> passages,
     PassagePriority priority,
     GetEmbeddingsResultCallback callback) {
+  if (BravePassageEmbeddingsService::ShouldUseLitertEmbedder()) {
+    // Reuse the upstream launch + LoadModels flow, which spins up the sandboxed
+    // Passage Embeddings utility process and drives the LiteRT embedder there.
+    PassageEmbeddingsServiceController::GetEmbeddings(
+        std::move(passages), priority, std::move(callback));
+    return;
+  }
+
   if (passages.empty()) {
     std::move(callback).Run({}, ComputeEmbeddingsStatus::kSuccess);
     return;

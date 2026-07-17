@@ -9,17 +9,13 @@
 #include <utility>
 #include <vector>
 
-#include "base/command_line.h"
-#include "base/files/file_path.h"
 #include "base/functional/bind.h"
 #include "base/memory/raw_ptr.h"
 #include "base/test/run_until.h"
-#include "base/test/scoped_command_line.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/test/task_environment.h"
 #include "base/test/test_future.h"
 #include "brave/browser/history_embeddings/brave_batch_passage_embedder.h"
-#include "brave/browser/history_embeddings/features.h"
 #include "brave/components/local_ai/core/background_web_contents.h"
 #include "brave/components/local_ai/core/local_ai.mojom.h"
 #include "components/history_embeddings/core/history_embeddings_features.h"
@@ -328,38 +324,6 @@ TEST_F(BravePassageEmbeddingsServiceTest, BindLocalAIReceiverForwardsToBatch) {
   ASSERT_TRUE(
       base::test::RunUntil([&] { return fake_factory_.init_count() > 0; }));
   EXPECT_TRUE(load->load_success.Get());
-}
-
-// End-to-end wiring of the native LiteRT embedder through the service: with the
-// feature enabled and the model switch set, BindPassageEmbedder builds a
-// BraveLitertPassageEmbedder on a background sequence and GenerateEmbeddings
-// (driven via the mojo remote) returns a real embedding. Skips unless the model
-// is provided (with sentencepiece.model beside it):
-//   --litert-poc-model=<embeddinggemma .tflite>
-TEST_F(BravePassageEmbeddingsServiceTest, LitertEmbedderGeneratesEmbeddings) {
-  const base::FilePath model =
-      base::CommandLine::ForCurrentProcess()->GetSwitchValuePath(
-          "litert-poc-model");
-  if (model.empty()) {
-    GTEST_SKIP() << "Pass --litert-poc-model (sentencepiece.model beside it).";
-  }
-
-  base::test::ScopedFeatureList litert_feature;
-  litert_feature.InitAndEnableFeature(kBraveHistoryEmbeddingsLitertGpu);
-  base::test::ScopedCommandLine scoped_command_line;
-  scoped_command_line.GetProcessCommandLine()->AppendSwitchPath(
-      "history-embeddings-litert-model", model);
-
-  auto load = IssueLoad();
-  EXPECT_TRUE(load->load_success.Get());
-
-  base::test::TestFuture<std::vector<mojom::PassageEmbeddingsResultPtr>> future;
-  load->embedder->GenerateEmbeddings({"The cat slept on the windowsill."},
-                                     mojom::PassagePriority::kUserInitiated,
-                                     future.GetCallback());
-  auto results = future.Take();
-  ASSERT_EQ(results.size(), 1u);
-  EXPECT_FALSE(results[0]->embeddings.empty());
 }
 
 }  // namespace passage_embeddings

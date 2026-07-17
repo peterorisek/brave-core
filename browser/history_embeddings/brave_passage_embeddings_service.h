@@ -10,15 +10,10 @@
 
 #include "base/functional/callback.h"
 #include "base/memory/weak_ptr.h"
-#include "base/threading/sequence_bound.h"
 #include "brave/browser/history_embeddings/brave_batch_passage_embedder.h"
 #include "brave/components/local_ai/core/local_ai.mojom.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "services/passage_embeddings/public/mojom/passage_embeddings.mojom.h"
-
-namespace brave_history_embeddings {
-class BraveLitertPassageEmbedder;
-}  // namespace brave_history_embeddings
 
 namespace passage_embeddings {
 
@@ -83,15 +78,9 @@ class BravePassageEmbeddingsService : public mojom::PassageEmbeddingsService {
 
  private:
   void OnBatchEmbedderDisconnected();
-  void OnLitertEmbedderDisconnected();
 
   BackgroundWebContentsFactory background_web_contents_factory_;
   std::unique_ptr<BraveBatchPassageEmbedder> batch_embedder_;
-
-  // The native LiteRT embedder (dev path, selected via command-line switches),
-  // running on its own background sequence. See BindPassageEmbedder.
-  base::SequenceBound<brave_history_embeddings::BraveLitertPassageEmbedder>
-      litert_embedder_;
 
   base::WeakPtrFactory<BravePassageEmbeddingsService> weak_ptr_factory_{this};
 };

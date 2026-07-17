@@ -155,9 +155,10 @@ source_set("history_embeddings") {
     "//brave/browser/local_ai",
     "//brave/components/history_embeddings",
     "//brave/components/local_ai/core",
-    "//brave/services/passage_embeddings:litert_passage_embedder",
     "//chrome/browser:browser_public_dependencies",
     "//chrome/browser/profiles",
     "//components/history_embeddings/core",
+    "//components/optimization_guide/proto:optimization_guide_proto",
+    "//content/public/browser",
   ]
 }

@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <utility>
 
+#include "base/files/file.h"
 #include "base/files/file_util.h"
 #include "base/functional/bind.h"
 #include "base/logging.h"
@@ -47,6 +48,23 @@ size_t ElementBytes(litert::ElementType type) {
   return type == litert::ElementType::Int64 ? sizeof(int64_t) : sizeof(int32_t);
 }
 
+// Reads an entire read-only file handle into a byte vector. Returns nullopt on
+// failure. Runs on the loading sequence, so blocking reads are allowed.
+std::optional<std::vector<uint8_t>> ReadFileToBytes(base::File file) {
+  if (!file.IsValid()) {
+    return std::nullopt;
+  }
+  const int64_t length = file.GetLength();
+  if (length < 0) {
+    return std::nullopt;
+  }
+  std::vector<uint8_t> bytes(static_cast<size_t>(length));
+  if (!file.ReadAndCheck(0, bytes)) {
+    return std::nullopt;
+  }
+  return bytes;
+}
+
 }  // namespace
 
 BraveLitertPassageEmbedder::BraveLitertPassageEmbedder() = default;
@@ -68,16 +86,16 @@ std::unique_ptr<BraveLitertPassageEmbedder> BraveLitertPassageEmbedder::Create(
 }
 
 BraveLitertPassageEmbedder::BraveLitertPassageEmbedder(
-    const base::FilePath& tflite_model_path,
-    const base::FilePath& sentencepiece_model_path,
+    base::File tflite_model,
+    base::File sentencepiece_model,
     bool use_gpu,
     const base::FilePath& gpu_runtime_lib_dir,
     mojo::PendingReceiver<passage_embeddings::mojom::PassageEmbedder> receiver,
     scoped_refptr<base::SequencedTaskRunner> reply_task_runner,
     base::OnceCallback<void(bool)> load_callback,
     base::OnceClosure on_disconnect) {
-  // Use the GPU only if the prebuilt accelerator is actually next to the model.
-  // (Runs on a MayBlock sequence, so the filesystem probe is allowed here.)
+  // Use the GPU only if the prebuilt accelerator is actually in the bundle's
+  // Libraries dir. (Runs on a MayBlock sequence, so the probe is allowed here.)
   bool accelerator_available = false;
 #if BUILDFLAG(IS_MAC)
   accelerator_available =
@@ -87,9 +105,9 @@ BraveLitertPassageEmbedder::BraveLitertPassageEmbedder(
 #endif
 
   std::optional<std::vector<uint8_t>> tflite =
-      base::ReadFileToBytes(tflite_model_path);
+      ReadFileToBytes(std::move(tflite_model));
   std::optional<std::vector<uint8_t>> sentencepiece =
-      base::ReadFileToBytes(sentencepiece_model_path);
+      ReadFileToBytes(std::move(sentencepiece_model));
   const bool loaded =
       tflite.has_value() && sentencepiece.has_value() &&
       Init(*tflite, *sentencepiece, accelerator_available, gpu_runtime_lib_dir);

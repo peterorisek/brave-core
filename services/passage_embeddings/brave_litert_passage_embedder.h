@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "base/containers/span.h"
+#include "base/files/file.h"
 #include "base/files/file_path.h"
 #include "base/functional/callback.h"
 #include "base/memory/scoped_refptr.h"
@@ -64,14 +65,15 @@ class BraveLitertPassageEmbedder
       const base::FilePath& gpu_runtime_lib_dir);
 
   // Service path, intended to run on a background sequence (via
-  // base::SequenceBound). Reads the `.tflite` and SentencePiece files from
-  // disk, compiles for GPU (`use_gpu` + `gpu_runtime_lib_dir` = the prebuilt
-  // accelerator directory) or CPU, and binds `receiver`. `load_callback` (with
-  // the success bool) and `on_disconnect` are posted to `reply_task_runner`
-  // (the caller's sequence).
+  // base::SequenceBound) inside the sandboxed utility process. Reads the
+  // `.tflite` and SentencePiece models from the given read-only file handles
+  // (the sandbox has no path access), compiles for GPU (`use_gpu` +
+  // `gpu_runtime_lib_dir` = the bundle's Libraries dir) or CPU, and binds
+  // `receiver`. `load_callback` (with the success bool) and `on_disconnect` are
+  // posted to `reply_task_runner` (the caller's sequence).
   BraveLitertPassageEmbedder(
-      const base::FilePath& tflite_model_path,
-      const base::FilePath& sentencepiece_model_path,
+      base::File tflite_model,
+      base::File sentencepiece_model,
       bool use_gpu,
       const base::FilePath& gpu_runtime_lib_dir,
       mojo::PendingReceiver<passage_embeddings::mojom::PassageEmbedder>
